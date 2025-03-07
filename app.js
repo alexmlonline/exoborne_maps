@@ -1566,7 +1566,7 @@ function showNotification(message, isError = false) {
   notification.fadeIn(300).delay(2000).fadeOut(300);
 }
 
-function toggleGroupVisibility(type, visible) {
+function toggleGroupVisibility(type, visible, updateUrl = true) {
   pois.forEach(poi => {
     if (poi.type === type) {
       poi.visible = visible;
@@ -1575,8 +1575,10 @@ function toggleGroupVisibility(type, visible) {
   renderPois();
   savePoisToStorage();
   
-  // Update URL when group visibility changes
-  updateUrlWithGroups();
+  // Update URL when group visibility changes, if updateUrl is true
+  if (updateUrl) {
+    updateUrlWithGroups();
+  }
 }
 
 // Function to parse URL parameters
@@ -1993,20 +1995,49 @@ $(document).ready(function () {
     changeZoom(scaledDelta, cursorX, cursorY);
   });
 
-  $('.group-checkbox').on('change', function () {
+  $('.group-checkbox').on('change', function (e) {
     const type = $(this).data('type');
     const checked = $(this).prop('checked');
-    toggleGroupVisibility(type, checked);
+    
+    // Check if this change was triggered by the Select All or Select None buttons
+    // If it was triggered programmatically and has no originalEvent, don't update the URL
+    const updateUrl = e.originalEvent !== undefined;
+    
+    toggleGroupVisibility(type, checked, updateUrl);
   });
 
   // Handle Select All button
   $('#select-all-btn').on('click', function() {
+    // Check all group checkboxes (this will trigger the change event)
     $('.group-checkbox').prop('checked', true).trigger('change');
+    
+    // Clear 'group' and 'select' parameters from the URL
+    clearUrlParameters();
+    
+    // Clear any selected POIs
+    selectedPoi = null;
+    selectedPois = [];
+    $('.poi-marker').removeClass('selected multi-selected');
+    updateSelectionIndicator();
+    
+    showNotification('All groups selected, URL parameters cleared');
   });
 
   // Handle Select None button
   $('#select-none-btn').on('click', function() {
+    // Uncheck all group checkboxes (this will trigger the change event)
     $('.group-checkbox').prop('checked', false).trigger('change');
+    
+    // Clear 'group' and 'select' parameters from the URL
+    clearUrlParameters();
+    
+    // Clear any selected POIs
+    selectedPoi = null;
+    selectedPois = [];
+    $('.poi-marker').removeClass('selected multi-selected');
+    updateSelectionIndicator();
+    
+    showNotification('All groups deselected, URL parameters cleared');
   });
 
   // Handle Select Only buttons
@@ -2019,9 +2050,21 @@ $(document).ready(function () {
     
     // Check only the selected one
     $(`.group-checkbox[data-type="${selectedType}"]`).prop('checked', true).trigger('change');
+    
+    // Clear 'group' and 'select' parameters from the URL
+    clearUrlParameters();
+    
+    // Clear any selected POIs
+    selectedPoi = null;
+    selectedPois = [];
+    $('.poi-marker').removeClass('selected multi-selected');
+    updateSelectionIndicator();
+    
+    showNotification(`Showing only ${selectedType} POIs, URL parameters cleared`);
   });
 
   // Show only POIs of a specific type
+  // NOTE: This is a duplicate handler and is no longer needed since we've updated the handler above
   $('.select-only-btn').on('click', function () {
     const type = $(this).data('type');
     
@@ -2464,5 +2507,28 @@ function centerMapOnSelectedPois() {
     updateMapTransform();
     showNotification(`Centered map on ${selectedPois.length} selected POIs`);
   }
+}
+
+// Function to clear 'group' and 'select' parameters from the URL
+function clearUrlParameters() {
+  // Create the base URL
+  let newUrl = window.location.pathname;
+  let params = [];
+  
+  // Add any other existing parameters except 'group' and 'select'
+  const urlParams = new URLSearchParams(window.location.search);
+  for (const [key, value] of urlParams.entries()) {
+    if (key !== 'group' && key !== 'select') {
+      params.push(`${key}=${encodeURIComponent(value)}`);
+    }
+  }
+  
+  // Append parameters to URL
+  if (params.length > 0) {
+    newUrl += '?' + params.join('&');
+  }
+  
+  // Update the URL without reloading the page
+  window.history.replaceState({}, document.title, newUrl);
 }
 
