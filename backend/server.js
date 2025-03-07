@@ -1,7 +1,7 @@
 const express = require('express');
-const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
+const poiService = require('./services/poiService');
 const app = express();
 
 // Enable CORS for all routes
@@ -19,14 +19,25 @@ app.use((req, res, next) => {
     next();
 });
 
-// Add specific endpoint for pois.json
-app.get('/api/pois-approved', (req, res) => {
-    const filePath = path.join(__dirname, '../pois/pois.json');
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        console.error('pois.json file not found at:', filePath);
-        res.status(404).json({ error: 'POIs file not found' });
+// Get approved POIs
+app.get('/api/pois-approved', async (req, res) => {
+    //try {
+        const pois = await poiService.getApprovedPois();
+        res.json(pois);
+    //} catch (err) {
+    //    console.error('Error getting approved POIs:', err);
+    //    res.status(500).json({ error: 'Error getting approved POIs' });
+    //}
+});
+
+// Get draft POIs
+app.get('/api/pois-draft', async (req, res) => {
+    try {
+        const pois = await poiService.getDraftPois();
+        res.json(pois);
+    } catch (err) {
+        console.error('Error getting draft POIs:', err);
+        res.status(500).json({ error: 'Error getting draft POIs' });
     }
 });
 
@@ -35,72 +46,9 @@ app.get('/pois/echo.json', (req, res) => {
     res.json({ status: 'OK' });
 });
 
-// Add specific endpoint for pois-draft.json
-app.get('/api/pois-draft', (req, res) => {
-    const filePath = path.join(__dirname, '../pois/pois-draft.json');
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        console.error('pois-draft.json file not found at:', filePath);
-        res.status(404).json({ error: 'POIs draft file not found' });
-    }
-});
-
-// Update file paths - ensure they exist
-const POIS_FILE = path.join(__dirname, '../pois/pois.json');
-const DRAFT_FILE = path.join(__dirname, '../pois/pois-draft.json');
-
-// Ensure directories exist
-const poisDir = path.dirname(POIS_FILE);
-if (!fs.existsSync(poisDir)) {
-    console.log(`Creating pois directory: ${poisDir}`);
-    try {
-        fs.mkdirSync(poisDir, { recursive: true });
-        console.log('Successfully created pois directory');
-    } catch (err) {
-        console.error('Error creating pois directory:', err);
-    }
-}
-
-// Initialize files if they don't exist
-[POIS_FILE, DRAFT_FILE].forEach(file => {
-    if (!fs.existsSync(file)) {
-        console.log(`Creating file: ${file}`);
-        try {
-            fs.writeFileSync(file, '[]', 'utf8');
-            console.log(`Successfully created file: ${file}`);
-        } catch (err) {
-            console.error(`Error creating file ${file}:`, err);
-        }
-    }
-});
-
 // Test endpoint
 app.get('/api/test', (req, res) => {
     res.json({ message: 'Server is running!' });
-});
-
-// API endpoint to check pois directory
-app.get('/api/check-pois', (req, res) => {
-    const poisDir = path.join(__dirname, '../pois');
-    const exists = fs.existsSync(poisDir);
-    
-    let files = [];
-    if (exists) {
-        try {
-            files = fs.readdirSync(poisDir);
-        } catch (err) {
-            console.error('Error reading pois directory:', err);
-        }
-    }
-    
-    res.json({
-        poisDirExists: exists,
-        poisDirPath: poisDir,
-        files: files,
-        currentDir: __dirname,
-        rootDir: path.join(__dirname, '..')
-    });
 });
 
 // Health check endpoint for Azure
@@ -114,7 +62,7 @@ app.get('/', (req, res) => {
 });
 
 // Endpoint to save POIs
-app.post('/api/save-poi', (req, res) => {
+app.post('/api/save-poi', async (req, res) => {
     console.log('Received POI request:', req.body);
 
     const poi = req.body;
@@ -123,76 +71,21 @@ app.post('/api/save-poi', (req, res) => {
         return res.status(400).json({ success: false, error: 'Valid POI data is required' });
     }
 
-    const filePath = DRAFT_FILE;
-
     try {
-        // Ensure the directory exists
-        if (!fs.existsSync(path.dirname(filePath))) {
-            console.log(`Creating directory: ${path.dirname(filePath)}`);
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        }
-
-        // Read existing POIs
-        let pois = [];
-        if (fs.existsSync(filePath)) {
-            try {
-                const fileContent = fs.readFileSync(filePath, 'utf8');
-                if (fileContent && fileContent.trim()) {
-                    pois = JSON.parse(fileContent);
-                }
-                console.log(`Read ${pois.length} POIs from draft file`);
-            } catch (parseError) {
-                console.error('Error parsing POIs file:', parseError);
-                return res.status(500).json({ success: false, error: 'Error parsing POIs file' });
-            }
-        } else {
-            console.log(`Draft file does not exist, creating new file: ${filePath}`);
-        }
-
-        // Remove the action property before saving
-        const { action, ...cleanPoi } = poi;
-        
         // Ensure approved status is false for draft POIs
-        cleanPoi.approved = false;
+        poi.approved = false;
 
-        // Check if this POI already exists
-        const existingIndex = pois.findIndex(p => p.id === cleanPoi.id);
-
-        if (existingIndex !== -1) {
-            // Update existing POI
-            console.log(`Updating existing POI at index ${existingIndex} with ID: ${cleanPoi.id}`);
-            
-            // Update the existing POI with new properties
-            pois[existingIndex] = { ...pois[existingIndex], ...cleanPoi };
-            
-            // Save the updated array
-            fs.writeFileSync(filePath, JSON.stringify(pois, null, 2));
-            console.log('Successfully updated POI');
-            
-            // Return success response with the updated POIs array
-            res.json({ 
-                success: true, 
-                message: 'POI updated successfully',
-                pois: pois
-            });
-        } else {
-            // Add new POI
-            console.log(`Adding new POI with ID: ${cleanPoi.id}`);
-            
-            // Add the new POI to the array
-            pois.push(cleanPoi);
-            
-            // Save the updated array
-            fs.writeFileSync(filePath, JSON.stringify(pois, null, 2));
-            console.log('Successfully added new POI');
-            
-            // Return success response with the updated POIs array
-            res.json({ 
-                success: true, 
-                message: 'POI added successfully',
-                pois: pois
-            });
-        }
+        // Save the POI
+        await poiService.savePoi(poi);
+        
+        // Get updated POIs
+        const draftPois = await poiService.getDraftPois();
+        
+        res.json({ 
+            success: true, 
+            message: 'POI saved successfully',
+            pois: draftPois
+        });
     } catch (err) {
         console.error('Error saving POI:', err);
         res.status(500).json({ success: false, error: err.message });
@@ -200,9 +93,8 @@ app.post('/api/save-poi', (req, res) => {
 });
 
 // Endpoint to delete POIs
-app.post('/api/delete-poi', (req, res) => {
+app.post('/api/delete-poi', async (req, res) => {
     console.log('Received POI delete request:', req.body);
-    console.log('canEdit value:', req.body.canEdit, 'type:', typeof req.body.canEdit);
 
     const { id, sessionId, canEdit } = req.body;
     if (!id) {
@@ -214,85 +106,32 @@ app.post('/api/delete-poi', (req, res) => {
         return res.status(400).json({ success: false, error: 'Session ID is required' });
     }
 
-    const filePath = DRAFT_FILE;
-
     try {
-        // Ensure the file exists
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ success: false, error: 'Draft POIs file not found' });
-        }
-
-        // Read existing POIs
-        let pois = [];
-        try {
-            const fileContent = fs.readFileSync(filePath, 'utf8');
-            if (fileContent && fileContent.trim()) {
-                pois = JSON.parse(fileContent);
-            }
-        } catch (parseError) {
-            console.error('Error parsing POIs file:', parseError);
-            return res.status(500).json({ success: false, error: 'Error parsing POIs file' });
-        }
-
-        // Check if the POI exists
-        const poiIndex = pois.findIndex(p => p.id === id);
-        if (poiIndex === -1) {
-            return res.status(404).json({ success: false, error: 'POI not found' });
-        }
-
-        // Get the POI
-        const poi = pois[poiIndex];
-
-        // Check if the POI is approved
-        if (poi.approved === true) {
-            return res.status(403).json({ success: false, error: 'Cannot delete approved POIs' });
-        }
-
-        // Check if the request has edit permission
-        // First check the body parameter, then fall back to URL query parameter
-        const canEditFromBody = String(canEdit) === '1';
-        const canEditFromQuery = req.query.canEdit === '1';
-        const hasEditPermission = canEditFromBody || canEditFromQuery;
+        await poiService.deletePoi(id, sessionId, canEdit);
         
-        console.log('canEditFromBody:', canEditFromBody);
-        console.log('canEditFromQuery:', canEditFromQuery);
-        console.log('hasEditPermission:', hasEditPermission);
-        console.log('POI sessionId:', poi.sessionId);
-        console.log('Request sessionId:', sessionId);
-        console.log('Session match:', poi.sessionId === sessionId);
-
-        // Users with edit permission can delete any unapproved POI
-        // Users without edit permission can only delete POIs they created
-        if (!hasEditPermission && poi.sessionId && poi.sessionId !== sessionId) {
-            console.log('Permission denied: User does not have edit permission and POI does not belong to their session');
-            return res.status(403).json({ 
-                success: false, 
-                error: 'You can only delete POIs that you created in this session' 
-            });
-        }
-
-        // Remove the POI
-        pois.splice(poiIndex, 1);
-
-        // Save back to file
-        fs.writeFileSync(filePath, JSON.stringify(pois, null, 2));
-        console.log('Successfully deleted POI');
+        // Get updated POIs
+        const draftPois = await poiService.getDraftPois();
         
         res.json({ 
             success: true, 
             message: 'POI deleted successfully',
-            pois: pois
+            pois: draftPois
         });
     } catch (err) {
         console.error('Error deleting POI:', err);
-        res.status(500).json({ success: false, error: err.message });
+        if (err.message.includes('not found')) {
+            res.status(404).json({ success: false, error: err.message });
+        } else if (err.message.includes('permission')) {
+            res.status(403).json({ success: false, error: err.message });
+        } else {
+            res.status(500).json({ success: false, error: err.message });
+        }
     }
 });
 
 // Endpoint to approve POIs
-app.post('/api/approve-poi', (req, res) => {
+app.post('/api/approve-poi', async (req, res) => {
     console.log('Received POI approval request:', req.body);
-    console.log('URL query parameters:', req.query);
 
     const poi = req.body;
     if (!poi || !poi.id) {
@@ -300,14 +139,10 @@ app.post('/api/approve-poi', (req, res) => {
         return res.status(400).json({ success: false, error: 'Valid POI data is required' });
     }
 
-    // Check if the request has edit permission from body or URL query
+    // Check if the request has edit permission
     const canEditFromBody = poi.canEdit === '1';
     const canEditFromQuery = req.query.canEdit === '1';
     const hasEditPermission = canEditFromBody || canEditFromQuery;
-    
-    console.log('canEditFromBody:', canEditFromBody);
-    console.log('canEditFromQuery:', canEditFromQuery);
-    console.log('hasEditPermission:', hasEditPermission);
     
     if (!hasEditPermission) {
         return res.status(403).json({ 
@@ -317,119 +152,11 @@ app.post('/api/approve-poi', (req, res) => {
     }
 
     try {
-        // Log file paths for debugging
-        console.log('DRAFT_FILE path:', DRAFT_FILE);
-        console.log('POIS_FILE path:', POIS_FILE);
-        console.log('DRAFT_FILE exists:', fs.existsSync(DRAFT_FILE));
-        console.log('POIS_FILE exists:', fs.existsSync(POIS_FILE));
+        await poiService.approvePoi(poi.id, hasEditPermission);
         
-        // Ensure both files exist
-        if (!fs.existsSync(DRAFT_FILE)) {
-            console.error(`Draft file not found: ${DRAFT_FILE}`);
-            return res.status(404).json({ success: false, error: 'Draft POIs file not found' });
-        }
-        if (!fs.existsSync(POIS_FILE)) {
-            // Create the approved POIs file if it doesn't exist
-            console.log(`Creating approved POIs file: ${POIS_FILE}`);
-            fs.writeFileSync(POIS_FILE, '[]', 'utf8');
-        }
-
-        // Read draft POIs
-        let draftPois = [];
-        try {
-            const draftContent = fs.readFileSync(DRAFT_FILE, 'utf8');
-            if (draftContent && draftContent.trim()) {
-                draftPois = JSON.parse(draftContent);
-            }
-            console.log(`Read ${draftPois.length} POIs from draft file`);
-        } catch (parseError) {
-            console.error('Error parsing draft POIs file:', parseError);
-            return res.status(500).json({ success: false, error: 'Error parsing draft POIs file' });
-        }
-
-        // Read approved POIs
-        let approvedPois = [];
-        try {
-            const approvedContent = fs.readFileSync(POIS_FILE, 'utf8');
-            if (approvedContent && approvedContent.trim()) {
-                approvedPois = JSON.parse(approvedContent);
-            }
-            console.log(`Read ${approvedPois.length} POIs from approved file`);
-        } catch (parseError) {
-            console.error('Error parsing approved POIs file:', parseError);
-            return res.status(500).json({ success: false, error: 'Error parsing approved POIs file' });
-        }
-
-        // Find the POI in the draft file
-        const draftIndex = draftPois.findIndex(p => p.id === poi.id);
-        if (draftIndex === -1) {
-            // If not found in draft, check if it's already in the approved file
-            const approvedIndex = approvedPois.findIndex(p => p.id === poi.id);
-            if (approvedIndex !== -1) {
-                console.log(`POI ${poi.id} is already approved`);
-                return res.json({
-                    success: true,
-                    message: 'POI is already approved',
-                    draftPois: draftPois,
-                    approvedPois: approvedPois
-                });
-            }
-            console.error(`POI ${poi.id} not found in draft file`);
-            return res.status(404).json({ success: false, error: 'POI not found in draft file' });
-        }
-
-        console.log(`Found POI ${poi.id} in draft file at index ${draftIndex}`);
-        
-        // Remove the POI from draft file
-        const poiToApprove = { ...draftPois[draftIndex] };
-        draftPois.splice(draftIndex, 1);
-        
-        // Ensure approved status is set to true
-        poiToApprove.approved = true;
-        
-        // Explicitly delete the sessionId property
-        delete poiToApprove.sessionId;
-        
-        // Remove any action property if it exists
-        const { action, sessionId, canEdit, ...cleanPoi } = poiToApprove;
-        
-        // Log the removal of sessionId
-        if (sessionId) {
-            console.log(`Removing sessionId ${sessionId} from approved POI ${poi.id}`);
-        }
-        
-        // Check if this POI already exists in the approved file
-        const approvedIndex = approvedPois.findIndex(p => p.id === poi.id);
-        if (approvedIndex !== -1) {
-            // Update existing approved POI
-            console.log(`Updating existing approved POI at index ${approvedIndex}`);
-            approvedPois[approvedIndex] = cleanPoi;
-        } else {
-            // Add to approved POIs
-            console.log(`Adding new approved POI`);
-            approvedPois.push(cleanPoi);
-        }
-
-        // Save both files
-        console.log(`Saving ${draftPois.length} POIs to draft file: ${DRAFT_FILE}`);
-        try {
-            fs.writeFileSync(DRAFT_FILE, JSON.stringify(draftPois, null, 2));
-            console.log('Draft file saved successfully');
-        } catch (writeError) {
-            console.error('Error writing to draft file:', writeError);
-            return res.status(500).json({ success: false, error: 'Error writing to draft file: ' + writeError.message });
-        }
-        
-        console.log(`Saving ${approvedPois.length} POIs to approved file: ${POIS_FILE}`);
-        try {
-            fs.writeFileSync(POIS_FILE, JSON.stringify(approvedPois, null, 2));
-            console.log('Approved file saved successfully');
-        } catch (writeError) {
-            console.error('Error writing to approved file:', writeError);
-            return res.status(500).json({ success: false, error: 'Error writing to approved file: ' + writeError.message });
-        }
-        
-        console.log('Successfully approved POI');
+        // Get updated POIs
+        const draftPois = await poiService.getDraftPois();
+        const approvedPois = await poiService.getApprovedPois();
         
         res.json({ 
             success: true, 
@@ -454,19 +181,6 @@ const PORT = process.env.PORT || 8080; // Azure Web Apps expects 8080
 const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Test the server by visiting http://localhost:${PORT}/api/test`);
-    
-    // Log directory structure for debugging
-    console.log('Current directory:', __dirname);
-    console.log('Root directory:', path.join(__dirname, '..'));
-    
-    // Check if pois directory exists
-    const poisDir = path.join(__dirname, '../pois');
-    console.log('Pois directory exists:', fs.existsSync(poisDir));
-    
-    // List files in pois directory if it exists
-    if (fs.existsSync(poisDir)) {
-        console.log('Files in pois directory:', fs.readdirSync(poisDir));
-    }
 });
 
 // Handle graceful shutdown
