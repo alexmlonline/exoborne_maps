@@ -1,5 +1,12 @@
 const db = require('../config/database');
 
+// Helper function to format date for MySQL
+function formatDateForMySQL(dateString) {
+    if (!dateString) return new Date().toISOString().slice(0, 19).replace('T', ' ');
+    // Remove timezone information and convert to MySQL datetime format
+    return new Date(dateString).toISOString().slice(0, 19).replace('T', ' ');
+}
+
 class PoiService {
     // Get all approved POIs
     async getApprovedPois() {
@@ -33,10 +40,21 @@ class PoiService {
                 isDeleted = FALSE
         `;
 
-        const [result] = await db.query(query, [
-            id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId
-        ]);
+        const values = [
+            id,
+            name,
+            type,
+            description || '',
+            x,
+            y,
+            visible,
+            approved,
+            formatDateForMySQL(dateAdded),
+            lastEdited ? formatDateForMySQL(lastEdited) : null,
+            sessionId || null
+        ];
 
+        const [result] = await db.query(query, values);
         return result;
     }
 

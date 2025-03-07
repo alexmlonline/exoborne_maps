@@ -21,13 +21,13 @@ app.use((req, res, next) => {
 
 // Get approved POIs
 app.get('/api/pois-approved', async (req, res) => {
-    //try {
+    try {
         const pois = await poiService.getApprovedPois();
         res.json(pois);
-    //} catch (err) {
-    //    console.error('Error getting approved POIs:', err);
-    //    res.status(500).json({ error: 'Error getting approved POIs' });
-    //}
+    } catch (err) {
+        console.error('Error getting approved POIs:', err);
+        res.status(500).json({ error: 'Error getting approved POIs' });
+    }
 });
 
 // Get draft POIs
