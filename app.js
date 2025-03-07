@@ -353,6 +353,9 @@ function loadPoisFromFile() {
       };
     });
 
+    // Check if we should skip rendering POIs due to URL processing
+    const skipRendering = window.urlPoisProcessed;
+
     // Create a map to track POIs by ID to avoid duplicates
     const poiMap = new Map();
     
@@ -369,8 +372,14 @@ function loadPoisFromFile() {
     // Convert map back to array
     pois = Array.from(poiMap.values());
     
-    renderPois();
-    savePoisToStorage();
+    // Only render POIs if we're not skipping rendering
+    if (!skipRendering) {
+      console.log("loadPoisFromFile: rendering POIs, addMode =", addMode);
+      renderPois();
+      savePoisToStorage();
+    } else {
+      console.log("loadPoisFromFile: skipping rendering, addMode =", addMode);
+    }
     
     // Update last sync time
     lastSyncTime = Date.now();
@@ -559,12 +568,23 @@ function resetMapView() {
 
 // POI management functions
 function toggleAddMode() {
+  console.log("toggleAddMode called, current addMode:", addMode);
   addMode = !addMode;
+  console.log("toggleAddMode: new addMode value:", addMode);
   $('#add-mode-btn').toggleClass('active', addMode);
 
   if (addMode) {
+    console.log("toggleAddMode: showing form");
     $('#game-map').css('cursor', 'crosshair');
     $('#poi-form').show();
+    console.log("toggleAddMode: form display style:", $('#poi-form').css('display'));
+    
+    // Force the form to be visible if it's not already
+    if ($('#poi-form').css('display') === 'none') {
+      console.log("toggleAddMode: forcing form to be visible");
+      $('#poi-form').css('display', 'block');
+    }
+    
     $('#poi-x').val('');
     $('#poi-y').val('');
     $('#poi-desc').val('');
@@ -575,6 +595,7 @@ function toggleAddMode() {
       toggleHeatmap();
     }
   } else {
+    console.log("toggleAddMode: hiding form");
     $('#game-map').css('cursor', 'move');
     $('#poi-form').hide();
     tempPoi = null;
@@ -1803,10 +1824,46 @@ function processUrlSelectedPois() {
   
   // Apply the selection
   updateSelectionFromUrl();
+
+  // Hide all other POIs that aren't in url
+  hideNonUrlPois(validIds);
+  
   
   // Mark as processed
   window.urlPoisProcessed = true;
 }
+
+// Function to hide all POIs that aren't in the URL's select parameter
+function hideNonUrlPois(selectedIds) {
+  // Always hide other POIs when multiple POIs are selected
+  if (selectedIds && selectedIds.length > 1) {
+    // Set all POIs to invisible first
+    pois.forEach(poi => {
+      poi.visible = false;
+    });
+    
+    // Then make only the selected POIs visible
+    selectedIds.forEach(id => {
+      const poi = pois.find(p => p.id === id);
+      if (poi) {
+        poi.visible = true;
+      }
+    });
+    
+    // Re-render POIs with new visibility settings
+    renderPois();
+    showNotification(`Showing only ${selectedIds.length} selected POI(s)`);
+    
+    // Update the group checkboxes to reflect the current visibility
+    $('.group-checkbox').each(function() {
+      const type = $(this).data('type');
+      const hasVisiblePois = pois.some(p => p.type === type && p.visible);
+      $(this).prop('checked', hasVisiblePois);
+    });
+  }
+}
+
+// Note: We always hide other POIs when multiple POIs are selected, so no need for a restore function
 
 $(document).ready(function () {
   // Initialize the map
@@ -1852,7 +1909,7 @@ $(document).ready(function () {
   });
   
   // Add event listeners for map interactions
-  $('#add-mode-btn').on('click', toggleAddMode);
+  // $('#add-mode-btn').on('click', toggleAddMode); // Already bound in initMap
 
   // Apply group visibility from URL parameters
   updateGroupsFromUrl();
@@ -2079,6 +2136,8 @@ $(document).ready(function () {
     updateSelectionIndicator();
     updateUrlWithSelection();
   });
+  
+  // Note: We always hide other POIs when multiple POIs are selected
   
   // Add keyboard shortcut for clearing selection
   $(document).on('keydown', function(e) {
