@@ -2060,6 +2060,9 @@ $(document).ready(function () {
     $('.poi-marker').removeClass('selected multi-selected');
     updateSelectionIndicator();
     
+    // Center the map on POIs of the selected type
+    centerMapOnPoisOfType(selectedType);
+    
     showNotification(`Showing only ${selectedType} POIs, URL parameters cleared`);
   });
 
@@ -2081,6 +2084,9 @@ $(document).ready(function () {
     
     renderPois();
     savePoisToStorage();
+    
+    // Center the map on POIs of the selected type
+    centerMapOnPoisOfType(type);
   });
 
   // Show only unapproved POIs
@@ -2095,6 +2101,10 @@ $(document).ready(function () {
     
     renderPois();
     savePoisToStorage();
+    
+    // Center the map on unapproved POIs
+    centerMapOnUnapprovedPois();
+    
     showNotification('Showing only unapproved POIs');
   });
 
@@ -2532,3 +2542,50 @@ function clearUrlParameters() {
   window.history.replaceState({}, document.title, newUrl);
 }
 
+// Function to center the map on POIs of a specific type
+function centerMapOnPoisOfType(type) {
+  // Create a temporary array of POIs of the selected type to center the map on
+  const visiblePois = pois.filter(poi => poi.type === type && poi.visible);
+  
+  // Only center the map if there are visible POIs of the selected type
+  if (visiblePois.length > 0) {
+    // Create temporary selectedPois array for centering
+    const tempSelectedPois = visiblePois.map(poi => poi.id);
+    
+    // Store original selectedPois
+    const originalSelectedPois = selectedPois;
+    
+    // Temporarily set selectedPois to the filtered POIs
+    selectedPois = tempSelectedPois;
+    
+    // Center the map on the filtered POIs
+    centerMapOnSelectedPois();
+    
+    // Restore original selectedPois
+    selectedPois = originalSelectedPois;
+  }
+}
+
+// Function to center the map on unapproved POIs
+function centerMapOnUnapprovedPois() {
+  // Create a temporary array of unapproved POIs to center the map on
+  const visiblePois = pois.filter(poi => !poi.approved && poi.visible);
+  
+  // Only center the map if there are visible unapproved POIs
+  if (visiblePois.length > 0) {
+    // Create temporary selectedPois array for centering
+    const tempSelectedPois = visiblePois.map(poi => poi.id);
+    
+    // Store original selectedPois
+    const originalSelectedPois = selectedPois;
+    
+    // Temporarily set selectedPois to the filtered POIs
+    selectedPois = tempSelectedPois;
+    
+    // Center the map on the filtered POIs
+    centerMapOnSelectedPois();
+    
+    // Restore original selectedPois
+    selectedPois = originalSelectedPois;
+  }
+}
