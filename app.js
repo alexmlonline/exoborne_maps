@@ -280,7 +280,12 @@ function initMap() {
 
   // POI controls
   $('#add-mode-btn').on('click', toggleAddMode);
-  $('#refresh-btn').on('click', syncWithServer);
+  $('#refresh-btn').on('click', function() {
+    syncWithServer(true).then(() => {
+      // Process URL selected POIs after sync is complete
+      processUrlSelectedPois();
+    });
+  });
   $('#save-poi-btn').on('click', savePoi);
   $('#cancel-poi-btn').on('click', cancelAddPoi);
   $('#session-btn').on('click', showSessionManagement);
@@ -291,7 +296,9 @@ function initMap() {
   // Load POIs
   //loadPoisFromStorage();
   loadPoisFromFile();
-  syncWithServer();
+  syncWithServer().then(() => {
+    // Additional actions after sync if needed
+  });
 }
 
 function loadPoisFromFile() {
@@ -1540,15 +1547,21 @@ function savePoisToStorage() {
 }
 
 function syncWithServer(force = false) {
-  if (force || Date.now() - lastSyncTime > 60000) {
-    showNotification('Syncing with server...');
+  return new Promise((resolve) => {
+    if (force || Date.now() - lastSyncTime > 60000) {
+      showNotification('Syncing with server...');
 
-    setTimeout(() => {
-      lastSyncTime = Date.now();
-      savePoisToStorage();
-      showNotification('Sync complete');
-    }, 1000);
-  }
+      setTimeout(() => {
+        lastSyncTime = Date.now();
+        savePoisToStorage();
+        showNotification('Sync complete');
+        resolve();
+      }, 1000);
+    } else {
+      // If no sync needed, resolve immediately
+      resolve();
+    }
+  });
 }
 
 function showNotification(message, isError = false) {
@@ -1803,7 +1816,9 @@ $(document).ready(function () {
   loadPoisFromStorage();
   
   // Load POIs from server
-  syncWithServer();
+  syncWithServer().then(() => {
+    // Additional actions after sync if needed
+  });
   
   // Update groups from URL parameters
   updateGroupsFromUrl();
