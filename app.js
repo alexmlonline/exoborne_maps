@@ -449,11 +449,17 @@ function stopDragging() {
 function changeZoom(delta, cursorX, cursorY) {
   const oldZoom = currentZoom;
   
-  // Update max zoom to 4 (2x beyond native resolution)
-  currentZoom = Math.max(0.2, Math.min(4, currentZoom + delta));
-
   const containerWidth = $('#map-container').width();
   const containerHeight = $('#map-container').height();
+  
+  // Calculate minimum zoom level based on container dimensions
+  // This ensures the map always fills at least one dimension of the viewport
+  const minZoomWidth = containerWidth / MAP_WIDTH;
+  const minZoomHeight = containerHeight / MAP_HEIGHT;
+  const minZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
+  
+  // Update zoom with new minimum limit
+  currentZoom = Math.max(minZoom, Math.min(4, currentZoom + delta));
 
   // If cursor position is provided, zoom towards that point
   // Otherwise, zoom towards the center of the viewport
@@ -518,14 +524,18 @@ function resetMapView() {
   const containerWidth = $('#map-container').width();
   const containerHeight = $('#map-container').height();
 
-  currentZoom = DEFAULT_ZOOM;
+  // Calculate minimum zoom level based on container dimensions
+  const minZoomWidth = containerWidth / MAP_WIDTH;
+  const minZoomHeight = containerHeight / MAP_HEIGHT;
+  const minZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
+  
+  // Use the larger of DEFAULT_ZOOM or minZoom
+  currentZoom = Math.max(DEFAULT_ZOOM, minZoom);
 
   mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
   mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
 
   updateMapTransform();
-  
-  // Update zoom indicator
   updateZoomIndicator();
 }
 
@@ -1564,7 +1574,48 @@ function updateUrlWithGroups() {
 }
 
 $(document).ready(function () {
+  // Initialize the map
   initMap();
+  
+  // Load POIs from storage
+  loadPoisFromStorage();
+  
+  // Load POIs from server
+  syncWithServer();
+  
+  // Update groups from URL parameters
+  updateGroupsFromUrl();
+  
+  // Add window resize handler to adjust zoom level
+  let resizeTimer;
+  $(window).on('resize', function() {
+    // Use a debounce to avoid excessive calculations during resize
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      const containerWidth = $('#map-container').width();
+      const containerHeight = $('#map-container').height();
+      
+      // Calculate minimum zoom level based on container dimensions
+      const minZoomWidth = containerWidth / MAP_WIDTH;
+      const minZoomHeight = containerHeight / MAP_HEIGHT;
+      const minZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
+      
+      // If current zoom is less than minimum, adjust it
+      if (currentZoom < minZoom) {
+        currentZoom = minZoom;
+        
+        // Recenter the map
+        mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
+        mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
+        
+        updateMapTransform();
+        updateZoomIndicator();
+      }
+    }, 250); // Wait for 250ms after resize ends
+  });
+  
+  // Add event listeners for map interactions
+  $('#add-mode-btn').on('click', toggleAddMode);
 
   // Apply group visibility from URL parameters
   updateGroupsFromUrl();

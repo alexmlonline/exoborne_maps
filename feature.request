@@ -1,5 +1,14 @@
 enabled hourly backups
-add feature to share POIs via url
 enable basic search agains description
 add new maps
+
+add sharing specific POIS (1 or many)
+
+
+
+DONE
+==========
+add feature to share POIs via url
 add a new layer with recommended locations
+zoom should stop somewhere (at browser size)
+
