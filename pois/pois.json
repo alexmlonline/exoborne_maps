@@ -589,5 +589,27 @@
     "visible": true,
     "approved": true,
     "dateAdded": "2025-03-06T18:50:13.024Z"
+  },
+  {
+    "id": "poi-1741346348479",
+    "name": "Fragment",
+    "type": "fragment",
+    "description": "",
+    "x": "+1495",
+    "y": "+0195",
+    "visible": true,
+    "approved": true,
+    "dateAdded": "2025-03-07T11:19:08.479Z"
+  },
+  {
+    "id": "poi-1741345693809",
+    "name": "Fragment",
+    "type": "fragment",
+    "description": "",
+    "x": "+1898",
+    "y": "-0107",
+    "visible": true,
+    "approved": true,
+    "dateAdded": "2025-03-07T11:08:13.809Z"
   }
 ]

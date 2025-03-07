@@ -345,5 +345,67 @@
     "visible": true,
     "approved": false,
     "dateAdded": "2025-03-07T10:00:00.000Z"
+  },
+  {
+    "id": "poi-1741345651148",
+    "name": "Loot",
+    "type": "loot",
+    "description": "inside and outside a house",
+    "x": "+1891",
+    "y": "-0106",
+    "visible": true,
+    "approved": false,
+    "dateAdded": "2025-03-07T11:07:31.148Z",
+    "sessionId": "session-1741340809797-o0s17fr01t8",
+    "lastEdited": "2025-03-07T11:09:04.300Z"
+  },
+  {
+    "id": "poi-1741345827891",
+    "name": "Collectibles",
+    "type": "collectibles",
+    "description": "second floor",
+    "x": "+1855",
+    "y": "-0089",
+    "visible": true,
+    "approved": false,
+    "dateAdded": "2025-03-07T11:10:27.891Z",
+    "sessionId": "session-1741340809797-o0s17fr01t8"
+  },
+  {
+    "id": "poi-1741345948820",
+    "name": "Loot",
+    "type": "loot",
+    "description": "drawer and cabinet inside a house",
+    "x": "+1847",
+    "y": "-0087",
+    "visible": true,
+    "approved": false,
+    "dateAdded": "2025-03-07T11:12:28.820Z",
+    "sessionId": "session-1741340809797-o0s17fr01t8"
+  },
+  {
+    "id": "poi-1741345968449",
+    "name": "Loot",
+    "type": "loot",
+    "description": "two luggages inside a house with a large cable",
+    "x": "+1852",
+    "y": "-0043",
+    "visible": true,
+    "approved": false,
+    "dateAdded": "2025-03-07T11:12:48.449Z",
+    "sessionId": "session-1741340809797-o0s17fr01t8",
+    "lastEdited": "2025-03-07T11:13:24.059Z"
+  },
+  {
+    "id": "poi-1741346327995",
+    "name": "Loot",
+    "type": "loot",
+    "description": "a toobox naer",
+    "x": "+1592",
+    "y": "+0155",
+    "visible": true,
+    "approved": false,
+    "dateAdded": "2025-03-07T11:18:47.995Z",
+    "sessionId": "session-1741340809797-o0s17fr01t8"
   }
 ]

@@ -221,7 +221,7 @@ function initMap() {
   heatmapOverlay.css({
     width: MAP_WIDTH + 'px',
     height: MAP_HEIGHT + 'px',
-    backgroundImage: 'url(maps/Heatmap_Maynard_Transparent.png)',
+    backgroundImage: 'url(maps/Maynard_Heatmap_Transparent.png)',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.7,
@@ -231,7 +231,7 @@ function initMap() {
   guideOverlay.css({
     width: MAP_WIDTH + 'px',
     height: MAP_HEIGHT + 'px',
-    backgroundImage: 'url(maps/Maynard_Transparent_Guide.png)',
+    backgroundImage: 'url(maps/Maynard_Guide_Transparent.png)',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.9,
