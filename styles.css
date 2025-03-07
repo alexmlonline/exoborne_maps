@@ -255,7 +255,7 @@
   }
   
   #poi-groups-container {
-    max-height: 300px;
+    max-height: 350px;
     overflow-y: auto;
     padding-right: 5px;
     margin-bottom: 8px;
