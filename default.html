@@ -195,8 +195,12 @@
     </div>
 
     <div class="left-controls">
-      <button id="toggle-heatmap" title="Toggle Players Heatmap">🌡️</button>
-      <button id="toggle-guide" title="Toggle Guide Tips">💡</button>
+      <div class="control-button-container">
+        <button id="toggle-heatmap" title="Toggle Players Heatmap">🌡️</button>
+      </div>
+      <div class="control-button-container">
+        <button id="toggle-guide" title="Toggle Guide Tips">💡</button>
+      </div>
     </div>
 
     <div id="game-map"></div>
@@ -216,29 +220,82 @@
   <style>
     .left-controls {
       position: absolute;
-      left: 10px;
+      left: 0;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 15px;
       z-index: 20;
+    }
+    
+    .control-button-container {
+      display: flex;
+      transform: translateX(-5px);
+      transition: transform 0.3s ease;
+    }
+    
+    .control-button-container:hover {
+      transform: translateX(0);
     }
 
     #toggle-heatmap,
     #toggle-guide {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 0 6px 6px 0;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
       padding: 0;
+      box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+      z-index: 21;
+    }
+    
+    .control-button-container::after {
+      content: '';
+      position: absolute;
+      width: 40px;
+      height: 10px;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 70%);
+      left: 5px;
+      top: 45px;
+      border-radius: 50%;
+      transform: scaleX(1.2);
+      z-index: 19;
+      opacity: 0.7;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .control-button-container:hover::after {
+      transform: scaleX(1.4) scaleY(1.2);
+      opacity: 0.8;
+    }
+    
+    #toggle-heatmap::before,
+    #toggle-guide::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    #toggle-heatmap:hover::before,
+    #toggle-guide:hover::before {
+      transform: translateY(0);
     }
 
     #toggle-heatmap {
@@ -251,10 +308,14 @@
     
     #toggle-heatmap:hover {
       background-color: #ff6666;
+      transform: scale(1.05);
+      box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 0, 0, 0.3);
     }
 
     #toggle-guide:hover {
       background-color: #ffb74d;
+      transform: scale(1.05);
+      box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 0, 0, 0.3);
     }
     
     #toggle-heatmap.active {

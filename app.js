@@ -221,7 +221,7 @@ function initMap() {
   heatmapOverlay.css({
     width: MAP_WIDTH + 'px',
     height: MAP_HEIGHT + 'px',
-    backgroundImage: 'url(maps/Heatmap_Maynard_Transparent_v2.png)',
+    backgroundImage: 'url(maps/Heatmap_Maynard_Transparent.png)',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.7,
@@ -1232,12 +1232,6 @@ function renderPois() {
   });
 
   sortedPois.filter(p => p.visible).forEach(poi => {
-      // Ensure approved POIs don't have sessionId
-      if (poi.approved === true && poi.sessionId) {
-        console.log('Removing sessionId from approved POI in render:', poi.id);
-        delete poi.sessionId;
-      }
-      
       const poiColor = getPoiColor(poi.type);
       
       // Calculate adjusted coordinates for each POI
