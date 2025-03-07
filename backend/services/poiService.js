@@ -3,13 +3,13 @@ const db = require('../config/database');
 class PoiService {
     // Get all approved POIs
     async getApprovedPois() {
-        const [rows] = await db.query('SELECT * FROM pois WHERE approved = TRUE');
+        const [rows] = await db.query('SELECT * FROM pois WHERE approved = TRUE AND isDeleted = FALSE');
         return rows;
     }
 
     // Get all draft POIs
     async getDraftPois() {
-        const [rows] = await db.query('SELECT * FROM pois WHERE approved = FALSE');
+        const [rows] = await db.query('SELECT * FROM pois WHERE approved = FALSE AND isDeleted = FALSE');
         return rows;
     }
 
@@ -18,8 +18,8 @@ class PoiService {
         const { id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId } = poi;
         
         const query = `
-            INSERT INTO pois (id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO pois (id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId, isDeleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 type = VALUES(type),
@@ -29,7 +29,8 @@ class PoiService {
                 visible = VALUES(visible),
                 approved = VALUES(approved),
                 lastEdited = VALUES(lastEdited),
-                sessionId = VALUES(sessionId)
+                sessionId = VALUES(sessionId),
+                isDeleted = FALSE
         `;
 
         const [result] = await db.query(query, [
@@ -39,10 +40,10 @@ class PoiService {
         return result;
     }
 
-    // Delete a POI
+    // Soft delete a POI
     async deletePoi(id, sessionId, canEdit) {
         // First get the POI to check permissions
-        const [poi] = await db.query('SELECT * FROM pois WHERE id = ?', [id]);
+        const [poi] = await db.query('SELECT * FROM pois WHERE id = ? AND isDeleted = FALSE', [id]);
         
         if (!poi.length) {
             throw new Error('POI not found');
@@ -60,8 +61,8 @@ class PoiService {
             throw new Error('You can only delete POIs that you created in this session');
         }
 
-        // Delete the POI
-        const [result] = await db.query('DELETE FROM pois WHERE id = ?', [id]);
+        // Soft delete the POI
+        const [result] = await db.query('UPDATE pois SET isDeleted = TRUE WHERE id = ?', [id]);
         return result;
     }
 
@@ -72,7 +73,7 @@ class PoiService {
         }
 
         const [result] = await db.query(
-            'UPDATE pois SET approved = TRUE, sessionId = NULL WHERE id = ?',
+            'UPDATE pois SET approved = TRUE, sessionId = NULL WHERE id = ? AND isDeleted = FALSE',
             [id]
         );
 
@@ -81,8 +82,22 @@ class PoiService {
 
     // Get POI by ID
     async getPoiById(id) {
-        const [rows] = await db.query('SELECT * FROM pois WHERE id = ?', [id]);
+        const [rows] = await db.query('SELECT * FROM pois WHERE id = ? AND isDeleted = FALSE', [id]);
         return rows[0];
+    }
+
+    // Restore a deleted POI (admin only)
+    async restorePoi(id, canEdit) {
+        if (!canEdit) {
+            throw new Error('You do not have permission to restore POIs');
+        }
+
+        const [result] = await db.query(
+            'UPDATE pois SET isDeleted = FALSE WHERE id = ?',
+            [id]
+        );
+
+        return result;
     }
 }
 

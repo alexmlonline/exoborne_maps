@@ -12,10 +12,12 @@ CREATE TABLE IF NOT EXISTS pois (
     y VARCHAR(20) NOT NULL,
     visible BOOLEAN DEFAULT TRUE,
     approved BOOLEAN DEFAULT FALSE,
+    isDeleted BOOLEAN DEFAULT FALSE,
     dateAdded DATETIME NOT NULL,
     lastEdited DATETIME,
     sessionId VARCHAR(100),
     INDEX idx_approved (approved),
     INDEX idx_type (type),
-    INDEX idx_session (sessionId)
+    INDEX idx_session (sessionId),
+    INDEX idx_deleted (isDeleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; 

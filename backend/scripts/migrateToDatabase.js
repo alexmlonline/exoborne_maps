@@ -24,8 +24,8 @@ async function migrateData() {
 
         // Prepare the insert query
         const query = `
-            INSERT INTO pois (id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO pois (id, name, type, description, x, y, visible, approved, isDeleted, dateAdded, lastEdited, sessionId)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 type = VALUES(type),
@@ -34,6 +34,7 @@ async function migrateData() {
                 y = VALUES(y),
                 visible = VALUES(visible),
                 approved = VALUES(approved),
+                isDeleted = VALUES(isDeleted),
                 lastEdited = VALUES(lastEdited),
                 sessionId = VALUES(sessionId)
         `;
@@ -50,6 +51,7 @@ async function migrateData() {
                 poi.y,
                 poi.visible,
                 true, // approved POIs
+                false, // not deleted
                 formatDateForMySQL(poi.dateAdded),
                 poi.lastEdited ? formatDateForMySQL(poi.lastEdited) : null,
                 null // approved POIs don't have sessionId
@@ -69,6 +71,7 @@ async function migrateData() {
                 poi.y,
                 poi.visible,
                 false, // draft POIs
+                false, // not deleted
                 formatDateForMySQL(poi.dateAdded),
                 poi.lastEdited ? formatDateForMySQL(poi.lastEdited) : null,
                 poi.sessionId || null
@@ -77,8 +80,8 @@ async function migrateData() {
         }
 
         // Verify the migration
-        const [approvedCount] = await db.query('SELECT COUNT(*) as count FROM pois WHERE approved = TRUE');
-        const [draftCount] = await db.query('SELECT COUNT(*) as count FROM pois WHERE approved = FALSE');
+        const [approvedCount] = await db.query('SELECT COUNT(*) as count FROM pois WHERE approved = TRUE AND isDeleted = FALSE');
+        const [draftCount] = await db.query('SELECT COUNT(*) as count FROM pois WHERE approved = FALSE AND isDeleted = FALSE');
 
         console.log('\nMigration completed successfully!');
         console.log(`Total POIs in database: ${approvedCount[0].count + draftCount[0].count}`);
