@@ -32,6 +32,11 @@ let tempPoi = null;
 let selectedPoi = null;
 let lastSyncTime = 0;
 
+// Add a new global variable to store multiple selected POIs
+let selectedPois = [];
+// Maximum number of POIs that can be selected at once
+const MAX_SELECTED_POIS = 10;
+
 // Format coordinate with sign and padding
 const formatCoordinate = (value) => {
   const roundedValue = Math.round(value);
@@ -290,6 +295,9 @@ function initMap() {
 }
 
 function loadPoisFromFile() {
+  // Reset URL processing flag
+  window.urlPoisProcessed = false;
+  
   showNotification('Loading POIs from server...');
   
   // Load both approved and draft POIs
@@ -364,6 +372,9 @@ function loadPoisFromFile() {
     
     // Update groups from URL after POIs are loaded
     updateGroupsFromUrl();
+    
+    // Process URL selected POIs after POIs are loaded
+    processUrlSelectedPois();
   })
   .catch(error => {
     console.error('Error in POI loading process:', error);
@@ -674,53 +685,107 @@ function togglePoiVisibility(id) {
   }
 }
 
-function selectPoi(id) {
-  // If the POI is already selected, don't do anything
-  if (selectedPoi === id) return;
+function selectPoi(id, useCtrlKey = false) {
+  // Skip if already selected and not using Ctrl
+  if (selectedPoi === id && !useCtrlKey) return;
   
-  selectedPoi = id;
+  // Handle multi-selection with Ctrl key
+  if (useCtrlKey) {
+    const index = selectedPois.indexOf(id);
+    
+    // If already in the selected list, remove it
+    if (index !== -1) {
+      selectedPois.splice(index, 1);
+      // If this was the only/last selected POI, clear single selection too
+      if (selectedPois.length === 0) {
+        selectedPoi = null;
+      } else {
+        // Otherwise set single selection to the last selected POI
+        selectedPoi = selectedPois[selectedPois.length - 1];
+      }
+    } else {
+      // If not in the list and we haven't reached the limit, add it
+      if (selectedPois.length < MAX_SELECTED_POIS) {
+        selectedPois.push(id);
+        selectedPoi = id; // Update single selection too
+      } else {
+        showNotification(`Maximum of ${MAX_SELECTED_POIS} POIs can be selected at once`, true);
+        return;
+      }
+    }
+  } else {
+    // Regular single selection (no Ctrl key)
+    selectedPoi = id;
+    selectedPois = [id]; // Reset multi-selection to just this POI
+  }
   
   // Update the visual state of all POI markers
-  $('.poi-marker').removeClass('selected');
-  const selectedMarker = $(`.poi-marker[data-id="${id}"]`);
-  selectedMarker.addClass('selected');
+  $('.poi-marker').removeClass('selected multi-selected');
   
-  const poi = pois.find(p => p.id === id);
-  if (poi) {
-    // Get the color for this POI type
-    const poiColor = getPoiColor(poi.type);
+  // Apply styling to all selected POIs
+  selectedPois.forEach(poiId => {
+    const marker = $(`.poi-marker[data-id="${poiId}"]`);
+    marker.addClass(poiId === selectedPoi ? 'selected' : 'multi-selected');
     
-    // Set custom properties for the glow effect
-    // Convert hex color to rgba for the glow and fill
-    const colorValues = hexToRgb(poiColor);
-    if (colorValues) {
-      // Set the glow color (more opaque)
-      selectedMarker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
-      // Set the stroke color (solid)
-      selectedMarker.css('--poi-stroke-color', poiColor);
-      // Set the fill color (semi-transparent)
-      selectedMarker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
+    const poi = pois.find(p => p.id === poiId);
+    if (poi) {
+      // Get the color for this POI type
+      const poiColor = getPoiColor(poi.type);
+      
+      // Convert hex color to rgba for the glow and fill
+      const colorValues = hexToRgb(poiColor);
+      if (colorValues) {
+        // Set the glow color (more opaque)
+        marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
+        // Set the stroke color (solid)
+        marker.css('--poi-stroke-color', poiColor);
+        // Set the fill color (semi-transparent)
+        marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
+      }
     }
-    
-    const containerWidth = $('#map-container').width();
-    const containerHeight = $('#map-container').height();
-    const poiScreenX = poi.x * currentZoom + mapPosition.x * currentZoom;
-    const poiScreenY = poi.y * currentZoom + mapPosition.y * currentZoom;
+  });
+  
+  // Update selection indicator in sidebar
+  updateSelectionIndicator();
+  
+  // Update URL with selected POIs
+  updateUrlWithSelection();
+  
+  // Only handle scrolling for single selection without Ctrl
+  if (!useCtrlKey && selectedPoi) {
+    const poi = pois.find(p => p.id === selectedPoi);
+    if (poi) {
+      const containerWidth = $('#map-container').width();
+      const containerHeight = $('#map-container').height();
+      const poiScreenX = poi.x * currentZoom + mapPosition.x * currentZoom;
+      const poiScreenY = poi.y * currentZoom + mapPosition.y * currentZoom;
 
-    const margin = 100;
-    const isOutsideX = poiScreenX < margin || poiScreenX > containerWidth - margin;
-    const isOutsideY = poiScreenY < margin || poiScreenY > containerHeight - margin;
+      const margin = 100;
+      const isOutsideX = poiScreenX < margin || poiScreenX > containerWidth - margin;
+      const isOutsideY = poiScreenY < margin || poiScreenY > containerHeight - margin;
 
-    // DUNNO WHY WE HAVE IT HERE - it breaks the zoom when editing
-    /*
-    if (isOutsideX || isOutsideY) {
-      mapPosition = {
-        x: containerWidth / (2 * currentZoom) - poi.x,
-        y: containerHeight / (2 * currentZoom) - poi.y
-      };
-      updateMapTransform();
+      // DUNNO WHY WE HAVE IT HERE - it breaks the zoom when editing
+      /*
+      if (isOutsideX || isOutsideY) {
+        mapPosition = {
+          x: containerWidth / (2 * currentZoom) - poi.x,
+          y: containerHeight / (2 * currentZoom) - poi.y
+        };
+        updateMapTransform();
+      }
+      */
     }
-    */
+  }
+}
+
+// Function to update the selection indicator in the sidebar
+function updateSelectionIndicator() {
+  const count = selectedPois.length;
+  if (count > 1) {
+    $('#selection-count').text(`${count} POIs selected`);
+    $('#selection-indicator').show();
+  } else {
+    $('#selection-indicator').hide();
   }
 }
 
@@ -1326,6 +1391,12 @@ function renderPois() {
           const clickedPoi = pois.find(p => p.id === clickedPoiId);
           
           if (clickedPoi) {
+              // Check if ctrl key is pressed for multi-selection
+              if (e.ctrlKey) {
+                  selectPoi(clickedPoiId, true);
+                  return;
+              }
+              
               // Find all overlapping POIs
               const overlappingPois = findOverlappingPois(clickedPoi.x, clickedPoi.y);
               
@@ -1547,30 +1618,181 @@ function updateGroupsFromUrl() {
   }
 }
 
-// Function to update URL with current group selections
+// Function to update URL with current group and POI selections
 function updateUrlWithGroups() {
-  const selectedGroups = [];
-  
-  // Get all checked group checkboxes
-  $('.group-checkbox:checked').each(function() {
-    selectedGroups.push($(this).data('type'));
-  });
-  
-  // Create the new URL
+  // Create the base URL
   let newUrl = window.location.pathname;
+  let params = [];
   
-  if (selectedGroups.length > 0) {
-    newUrl += '?';
-    selectedGroups.forEach((group, index) => {
-      newUrl += `group=${encodeURIComponent(group)}`;
-      if (index < selectedGroups.length - 1) {
-        newUrl += '&';
-      }
+  // If there are selected POIs, we'll only include those in the URL
+  // and ignore group parameters
+  if (selectedPois.length > 0) {
+    params.push(`select=${selectedPois.join(',')}`);
+  } else {
+    // Only include group parameters if no POIs are selected
+    const selectedGroups = [];
+    
+    // Get all checked group checkboxes
+    $('.group-checkbox:checked').each(function() {
+      selectedGroups.push($(this).data('type'));
     });
+    
+    // Add group parameters
+    if (selectedGroups.length > 0) {
+      selectedGroups.forEach(group => {
+        params.push(`group=${encodeURIComponent(group)}`);
+      });
+    }
+  }
+  
+  // Add any other existing parameters except 'group' and 'select'
+  const urlParams = new URLSearchParams(window.location.search);
+  for (const [key, value] of urlParams.entries()) {
+    if (key !== 'group' && key !== 'select') {
+      params.push(`${key}=${encodeURIComponent(value)}`);
+    }
+  }
+  
+  // Append parameters to URL
+  if (params.length > 0) {
+    newUrl += '?' + params.join('&');
   }
   
   // Update the URL without reloading the page
   window.history.replaceState({}, document.title, newUrl);
+}
+
+// Function to update URL with current POI selection
+function updateUrlWithSelection() {
+  // We'll reuse the updateUrlWithGroups function since it now handles both
+  updateUrlWithGroups();
+}
+
+// Function to update POI selection based on URL parameters
+function updateSelectionFromUrl() {
+  const params = getUrlParameters();
+  
+  if (params.select) {
+    // Get the POI IDs from the URL
+    const selectedIds = params.select.split(',');
+    
+    // Clear existing selection
+    selectedPois = [];
+    selectedPoi = null;
+    
+    // Select each POI (limiting to MAX_SELECTED_POIS)
+    const validIds = selectedIds.filter(id => pois.some(p => p.id === id));
+    const limitedIds = validIds.slice(0, MAX_SELECTED_POIS);
+    
+    if (limitedIds.length > 0) {
+      // Use last one as the primary selection
+      selectedPoi = limitedIds[limitedIds.length - 1];
+      selectedPois = [...limitedIds];
+      
+      // Update the visual state of markers
+      $('.poi-marker').removeClass('selected multi-selected');
+      selectedPois.forEach(id => {
+        const marker = $(`.poi-marker[data-id="${id}"]`);
+        marker.addClass(id === selectedPoi ? 'selected' : 'multi-selected');
+        
+        // Apply styling
+        const poi = pois.find(p => p.id === id);
+        if (poi) {
+          const poiColor = getPoiColor(poi.type);
+          const colorValues = hexToRgb(poiColor);
+          if (colorValues) {
+            marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
+            marker.css('--poi-stroke-color', poiColor);
+            marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
+          }
+        }
+      });
+      
+      // Update the selection indicator
+      updateSelectionIndicator();
+    }
+  }
+}
+
+// Function to process URLs and identify loaded POIs from the select parameter
+function processUrlSelectedPois() {
+  // Check if we've already processed the URL
+  if (window.urlPoisProcessed) {
+    return;
+  }
+  
+  const params = getUrlParameters();
+  
+  if (!params.select) {
+    window.urlPoisProcessed = true;
+    return; // No POIs to process in URL
+  }
+  
+  // Get the POI IDs from the URL
+  const selectedIds = params.select.split(',');
+  
+  // Check if all selected POIs exist in the loaded POIs
+  const validIds = selectedIds.filter(id => pois.some(p => p.id === id));
+  
+  // If some POIs are missing, show a notification
+  if (validIds.length < selectedIds.length) {
+    const missingCount = selectedIds.length - validIds.length;
+    showNotification(`${missingCount} selected POI(s) could not be found`, true);
+    
+    // Update the URL to only include valid POIs
+    if (validIds.length > 0) {
+      // Create a new URL with only valid POIs
+      let newUrl = window.location.pathname;
+      let params = [];
+      
+      params.push(`select=${validIds.join(',')}`);
+      
+      // Add any other existing parameters except 'group' and 'select'
+      const urlParams = new URLSearchParams(window.location.search);
+      for (const [key, value] of urlParams.entries()) {
+        if (key !== 'group' && key !== 'select') {
+          params.push(`${key}=${encodeURIComponent(value)}`);
+        }
+      }
+      
+      // Append parameters to URL
+      if (params.length > 0) {
+        newUrl += '?' + params.join('&');
+      }
+      
+      // Update the URL without reloading the page
+      window.history.replaceState({}, document.title, newUrl);
+    } else {
+      // If no valid POIs, remove the select parameter
+      let newUrl = window.location.pathname;
+      let params = [];
+      
+      // Add any other existing parameters except 'group' and 'select'
+      const urlParams = new URLSearchParams(window.location.search);
+      for (const [key, value] of urlParams.entries()) {
+        if (key !== 'group' && key !== 'select') {
+          params.push(`${key}=${encodeURIComponent(value)}`);
+        }
+      }
+      
+      // Append parameters to URL
+      if (params.length > 0) {
+        newUrl += '?' + params.join('&');
+      }
+      
+      // Update the URL without reloading the page
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  } else if (validIds.length > 0) {
+    // All POIs found, show a notification
+    showNotification(`${validIds.length} POI(s) selected from URL`);
+  }
+  
+  // Apply the selection
+  updateSelectionFromUrl();
+  
+  // Mark as processed
+  window.urlPoisProcessed = true;
 }
 
 $(document).ready(function () {
@@ -1809,7 +2031,6 @@ $(document).ready(function () {
   $('#game-map').on('mousemove', function (e) {
     $('#map-container').trigger('mousemove');
   });
-
   // Toggle filter section visibility
   $('#toggle-filter').on('click', function() {
     const $container = $('#poi-groups-container');
@@ -1824,6 +2045,39 @@ $(document).ready(function () {
       $container.slideDown(200);
       $filterControls.slideDown(200);
       $button.text('▼');
+    }
+  });
+
+  // Update groups from URL parameters
+  updateGroupsFromUrl();
+  
+  // Load POI selections from URL parameters (after POIs are loaded)
+  syncWithServer().then(() => {
+    processUrlSelectedPois();
+  });
+  
+  // Handle clear selection button
+  $('#clear-selection-btn').on('click', function() {
+    selectedPoi = null;
+    selectedPois = [];
+    $('.poi-marker').removeClass('selected multi-selected');
+    updateSelectionIndicator();
+    updateUrlWithSelection();
+  });
+  
+  // Add keyboard shortcut for clearing selection
+  $(document).on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $('#context-menu').hide();
+      
+      // Clear selection when pressing Escape key
+      if (selectedPoi || selectedPois.length > 0) {
+        selectedPoi = null;
+        selectedPois = [];
+        $('.poi-marker').removeClass('selected multi-selected');
+        updateSelectionIndicator();
+        updateUrlWithSelection();
+      }
     }
   });
 });
@@ -1845,10 +2099,13 @@ function handleMapClick(e) {
     // This prevents double handling of the click event
     return;
   } else {
-    // If clicking on empty space, deselect any selected POI
-    if (selectedPoi) {
+    // If clicking on empty space, deselect any selected POI (unless ctrl is held)
+    if ((selectedPoi || selectedPois.length > 0) && !e.ctrlKey) {
       selectedPoi = null;
-      $('.poi-marker').removeClass('selected');
+      selectedPois = [];
+      $('.poi-marker').removeClass('selected multi-selected');
+      updateSelectionIndicator();
+      updateUrlWithSelection();
     }
     
     // Only show context menu for right-click or double-click
@@ -2068,3 +2325,4 @@ function toggleGuide() {
   $('#guide-overlay').toggle(isGuideVisible);
   $('#toggle-guide').toggleClass('active', isGuideVisible);
 }
+

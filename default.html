@@ -18,6 +18,17 @@
       <!-- <button id="session-btn">Session</button> -->
     </div>
 
+    <!-- Add selection indicator -->
+    <div id="selection-indicator" style="display: none; margin-top: 10px; background-color: #333; padding: 8px; border-radius: 4px; font-size: 13px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span id="selection-count">0 POIs selected</span>
+        <button id="clear-selection-btn" style="padding: 2px 8px; font-size: 12px; background-color: #555;">Clear</button>
+      </div>
+      <div id="selection-tip" style="margin-top: 5px; font-size: 11px; color: #aaa;">
+        Use Ctrl+Click to select multiple POIs (max 10)
+      </div>
+    </div>
+
     <div id="poi-form">
       <label for="poi-type">Type:</label>
       <select id="poi-type">
