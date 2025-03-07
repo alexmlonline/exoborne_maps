@@ -778,32 +778,6 @@ function selectPoi(id, useCtrlKey = false) {
   
   // Update URL with selected POIs
   updateUrlWithSelection();
-  
-  // Only handle scrolling for single selection without Ctrl
-  if (!useCtrlKey && selectedPoi) {
-    const poi = pois.find(p => p.id === selectedPoi);
-    if (poi) {
-      const containerWidth = $('#map-container').width();
-      const containerHeight = $('#map-container').height();
-      const poiScreenX = poi.x * currentZoom + mapPosition.x * currentZoom;
-      const poiScreenY = poi.y * currentZoom + mapPosition.y * currentZoom;
-
-      const margin = 100;
-      const isOutsideX = poiScreenX < margin || poiScreenX > containerWidth - margin;
-      const isOutsideY = poiScreenY < margin || poiScreenY > containerHeight - margin;
-
-      // DUNNO WHY WE HAVE IT HERE - it breaks the zoom when editing
-      /*
-      if (isOutsideX || isOutsideY) {
-        mapPosition = {
-          x: containerWidth / (2 * currentZoom) - poi.x,
-          y: containerHeight / (2 * currentZoom) - poi.y
-        };
-        updateMapTransform();
-      }
-      */
-    }
-  }
 }
 
 // Function to update the selection indicator in the sidebar
@@ -1828,6 +1802,8 @@ function processUrlSelectedPois() {
   // Hide all other POIs that aren't in url
   hideNonUrlPois(validIds);
   
+  // Center the map on the selected POIs
+  centerMapOnSelectedPois();
   
   // Mark as processed
   window.urlPoisProcessed = true;
@@ -2137,6 +2113,13 @@ $(document).ready(function () {
     updateUrlWithSelection();
   });
   
+  // Handle center selection button
+  $('#center-selection-btn').on('click', function() {
+    if (selectedPois.length > 0) {
+      centerMapOnSelectedPois();
+    }
+  });
+  
   // Note: We always hide other POIs when multiple POIs are selected
   
   // Add keyboard shortcut for clearing selection
@@ -2398,5 +2381,88 @@ function toggleGuide() {
   isGuideVisible = !isGuideVisible;
   $('#guide-overlay').toggle(isGuideVisible);
   $('#toggle-guide').toggleClass('active', isGuideVisible);
+}
+
+// Function to center the map on selected POIs
+function centerMapOnSelectedPois() {
+  if (selectedPois.length === 0) return;
+  
+  // Get container dimensions
+  const containerWidth = $('#map-container').width();
+  const containerHeight = $('#map-container').height();
+  
+  // If only one POI is selected, center directly on it
+  if (selectedPois.length === 1) {
+    const poi = pois.find(p => p.id === selectedPois[0]);
+    if (poi) {
+      console.log("Centering on single POI:", poi);
+      
+      // Calculate the position to center this POI
+      mapPosition = {
+        x: containerWidth / (2 * currentZoom) - (poi.x / 1.664) - offsetX,
+        y: containerHeight / (2 * currentZoom) - (poi.y / 1.664) - offsetY - MAP_HEIGHT
+      };
+      
+      updateMapTransform();
+      showNotification("Centered map on selected POI");
+    }
+  } else {
+    // For multiple POIs, calculate the bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    // Find the bounds of all selected POIs
+    selectedPois.forEach(id => {
+      const poi = pois.find(p => p.id === id);
+      if (poi) {
+        const realX = (poi.x / 1.664) + offsetX;
+        const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
+        
+        minX = Math.min(minX, realX);
+        minY = Math.min(minY, realY);
+        maxX = Math.max(maxX, realX);
+        maxY = Math.max(maxY, realY);
+      }
+    });
+    
+    console.log("Bounding box for selected POIs:", { minX, minY, maxX, maxY });
+    
+    // Calculate center of the bounding box
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    // Calculate the width and height of the bounding box
+    const width = maxX - minX;
+    const height = maxY - minY;
+    
+    // Ensure a minimum bounding box size to prevent extreme zoom on very close POIs
+    const minBoxSize = 50; // Minimum size in pixels
+    const adjustedWidth = Math.max(width, minBoxSize);
+    const adjustedHeight = Math.max(height, minBoxSize);
+    
+    // Add padding (20% of the bounding box size)
+    const paddingX = adjustedWidth * 0.2;
+    const paddingY = adjustedHeight * 0.2;
+    
+    // Calculate the zoom level needed to fit the bounding box with padding
+    const zoomX = containerWidth / (adjustedWidth + paddingX * 2);
+    const zoomY = containerHeight / (adjustedHeight + paddingY * 2);
+    
+    // Use the smaller of the two zoom levels to ensure everything fits
+    const newZoom = Math.min(zoomX, zoomY, 2.0); // Cap at 2.0 to avoid extreme zoom
+    
+    // Only change zoom if it's significantly different
+    if (Math.abs(newZoom - currentZoom) > 0.1) {
+      currentZoom = newZoom;
+    }
+    
+    // Calculate the position to center the bounding box
+    mapPosition = {
+      x: containerWidth / (2 * currentZoom) - centerX,
+      y: containerHeight / (2 * currentZoom) - centerY
+    };
+    
+    updateMapTransform();
+    showNotification(`Centered map on ${selectedPois.length} selected POIs`);
+  }
 }
 
