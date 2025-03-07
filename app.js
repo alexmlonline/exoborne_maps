@@ -42,7 +42,11 @@ const formatCoordinate = (value) => {
 // Check if user has edit permissions based on URL parameter
 function hasEditPermission() {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('canEdit') === '1';
+  const canEdit = urlParams.get('canEdit') === '1';
+  console.log('URL params:', window.location.search);
+  console.log('canEdit from URL:', urlParams.get('canEdit'));
+  console.log('hasEditPermission result:', canEdit);
+  return canEdit;
 }
 
 // Function to check if a POI belongs to the current session
@@ -317,8 +321,8 @@ function loadPoisFromFile() {
     
     // Process the POIs to ensure they have approval status and remove any action property
     const processedApproved = approvedPois.map(poi => {
-      // Remove action property if it exists
-      const { action, ...cleanPoi } = poi;
+      // Remove action property and sessionId if they exist
+      const { action, sessionId, ...cleanPoi } = poi;
       return {
         ...cleanPoi,
         approved: true // Ensure approved status for main POIs
@@ -757,7 +761,8 @@ function deletePoi(poiId) {
     return;
   }
   
-  // Check if this POI was created in the current session or if user has edit permission
+  // Users with edit permission can delete any unapproved POI
+  // Users without edit permission can only delete POIs they created
   if (!hasEditPermission() && poi.sessionId && poi.sessionId !== sessionId) {
     showNotification('You can only delete POIs that you created in this session', true);
     return;
@@ -773,12 +778,24 @@ function deletePoi(poiId) {
 
   // Send delete request to server for unapproved POIs
   if (poi.approved === false) {
-    fetch(`${API_ENDPOINT}/delete-poi`, {
+    // Log the canEdit value for debugging
+    const canEditValue = hasEditPermission() ? '1' : '0';
+    console.log('Sending delete request with canEdit:', canEditValue);
+    
+    // Include canEdit in both the URL and the request body
+    const url = `${API_ENDPOINT}/delete-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
+    console.log('Request URL:', url);
+    
+    fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ id: poiId }),
+      body: JSON.stringify({ 
+        id: poiId,
+        sessionId: sessionId,
+        canEdit: canEditValue
+      }),
     })
     .then(response => response.json())
     .then(data => {
@@ -823,13 +840,25 @@ function approvePoi(poiId) {
   }
 
   // Create a copy of the POI with approved status
-  const approvedPoi = { ...poi, approved: true };
+  const approvedPoi = { 
+    ...poi, 
+    approved: true,
+    canEdit: hasEditPermission() ? '1' : '0'
+  };
 
   // Show loading notification
   showNotification('Approving POI...');
 
+  // Log the canEdit value for debugging
+  const canEditValue = hasEditPermission() ? '1' : '0';
+  console.log('Sending approve request with canEdit:', canEditValue);
+  
+  // Include canEdit in both the URL and the request body
+  const url = `${API_ENDPOINT}/approve-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
+  console.log('Request URL:', url);
+
   // Send approval request to server
-  fetch(`${API_ENDPOINT}/approve-poi`, {
+  fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1203,6 +1232,12 @@ function renderPois() {
   });
 
   sortedPois.filter(p => p.visible).forEach(poi => {
+      // Ensure approved POIs don't have sessionId
+      if (poi.approved === true && poi.sessionId) {
+        console.log('Removing sessionId from approved POI in render:', poi.id);
+        delete poi.sessionId;
+      }
+      
       const poiColor = getPoiColor(poi.type);
       
       // Calculate adjusted coordinates for each POI
@@ -1396,10 +1431,11 @@ function loadPoisFromStorage() {
         console.log('POIs with sessionId:', pois.filter(p => p.sessionId).length);
         console.log('POIs without sessionId:', pois.filter(p => !p.sessionId).length);
         
-        // Add sessionId to POIs that don't have it
+        // Add sessionId only to unapproved POIs that don't have it
+        // Approved POIs should not have sessionId
         pois.forEach(poi => {
-          if (!poi.sessionId) {
-            console.log('Adding missing sessionId to POI:', poi.id);
+          if (!poi.sessionId && poi.approved === false) {
+            console.log('Adding missing sessionId to unapproved POI:', poi.id);
             poi.sessionId = 'legacy-poi';
           }
         });

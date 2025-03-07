@@ -202,10 +202,16 @@ app.post('/api/save-poi', (req, res) => {
 // Endpoint to delete POIs
 app.post('/api/delete-poi', (req, res) => {
     console.log('Received POI delete request:', req.body);
+    console.log('canEdit value:', req.body.canEdit, 'type:', typeof req.body.canEdit);
 
-    const { id } = req.body;
+    const { id, sessionId, canEdit } = req.body;
     if (!id) {
         return res.status(400).json({ success: false, error: 'POI ID is required' });
+    }
+
+    // Session ID is required for validation
+    if (!sessionId) {
+        return res.status(400).json({ success: false, error: 'Session ID is required' });
     }
 
     const filePath = DRAFT_FILE;
@@ -234,6 +240,37 @@ app.post('/api/delete-poi', (req, res) => {
             return res.status(404).json({ success: false, error: 'POI not found' });
         }
 
+        // Get the POI
+        const poi = pois[poiIndex];
+
+        // Check if the POI is approved
+        if (poi.approved === true) {
+            return res.status(403).json({ success: false, error: 'Cannot delete approved POIs' });
+        }
+
+        // Check if the request has edit permission
+        // First check the body parameter, then fall back to URL query parameter
+        const canEditFromBody = String(canEdit) === '1';
+        const canEditFromQuery = req.query.canEdit === '1';
+        const hasEditPermission = canEditFromBody || canEditFromQuery;
+        
+        console.log('canEditFromBody:', canEditFromBody);
+        console.log('canEditFromQuery:', canEditFromQuery);
+        console.log('hasEditPermission:', hasEditPermission);
+        console.log('POI sessionId:', poi.sessionId);
+        console.log('Request sessionId:', sessionId);
+        console.log('Session match:', poi.sessionId === sessionId);
+
+        // Users with edit permission can delete any unapproved POI
+        // Users without edit permission can only delete POIs they created
+        if (!hasEditPermission && poi.sessionId && poi.sessionId !== sessionId) {
+            console.log('Permission denied: User does not have edit permission and POI does not belong to their session');
+            return res.status(403).json({ 
+                success: false, 
+                error: 'You can only delete POIs that you created in this session' 
+            });
+        }
+
         // Remove the POI
         pois.splice(poiIndex, 1);
 
@@ -255,6 +292,7 @@ app.post('/api/delete-poi', (req, res) => {
 // Endpoint to approve POIs
 app.post('/api/approve-poi', (req, res) => {
     console.log('Received POI approval request:', req.body);
+    console.log('URL query parameters:', req.query);
 
     const poi = req.body;
     if (!poi || !poi.id) {
@@ -262,7 +300,29 @@ app.post('/api/approve-poi', (req, res) => {
         return res.status(400).json({ success: false, error: 'Valid POI data is required' });
     }
 
+    // Check if the request has edit permission from body or URL query
+    const canEditFromBody = poi.canEdit === '1';
+    const canEditFromQuery = req.query.canEdit === '1';
+    const hasEditPermission = canEditFromBody || canEditFromQuery;
+    
+    console.log('canEditFromBody:', canEditFromBody);
+    console.log('canEditFromQuery:', canEditFromQuery);
+    console.log('hasEditPermission:', hasEditPermission);
+    
+    if (!hasEditPermission) {
+        return res.status(403).json({ 
+            success: false, 
+            error: 'You do not have permission to approve POIs' 
+        });
+    }
+
     try {
+        // Log file paths for debugging
+        console.log('DRAFT_FILE path:', DRAFT_FILE);
+        console.log('POIS_FILE path:', POIS_FILE);
+        console.log('DRAFT_FILE exists:', fs.existsSync(DRAFT_FILE));
+        console.log('POIS_FILE exists:', fs.existsSync(POIS_FILE));
+        
         // Ensure both files exist
         if (!fs.existsSync(DRAFT_FILE)) {
             console.error(`Draft file not found: ${DRAFT_FILE}`);
@@ -327,8 +387,16 @@ app.post('/api/approve-poi', (req, res) => {
         // Ensure approved status is set to true
         poiToApprove.approved = true;
         
+        // Explicitly delete the sessionId property
+        delete poiToApprove.sessionId;
+        
         // Remove any action property if it exists
-        const { action, ...cleanPoi } = poiToApprove;
+        const { action, sessionId, canEdit, ...cleanPoi } = poiToApprove;
+        
+        // Log the removal of sessionId
+        if (sessionId) {
+            console.log(`Removing sessionId ${sessionId} from approved POI ${poi.id}`);
+        }
         
         // Check if this POI already exists in the approved file
         const approvedIndex = approvedPois.findIndex(p => p.id === poi.id);
@@ -343,11 +411,23 @@ app.post('/api/approve-poi', (req, res) => {
         }
 
         // Save both files
-        console.log(`Saving ${draftPois.length} POIs to draft file`);
-        fs.writeFileSync(DRAFT_FILE, JSON.stringify(draftPois, null, 2));
+        console.log(`Saving ${draftPois.length} POIs to draft file: ${DRAFT_FILE}`);
+        try {
+            fs.writeFileSync(DRAFT_FILE, JSON.stringify(draftPois, null, 2));
+            console.log('Draft file saved successfully');
+        } catch (writeError) {
+            console.error('Error writing to draft file:', writeError);
+            return res.status(500).json({ success: false, error: 'Error writing to draft file: ' + writeError.message });
+        }
         
-        console.log(`Saving ${approvedPois.length} POIs to approved file`);
-        fs.writeFileSync(POIS_FILE, JSON.stringify(approvedPois, null, 2));
+        console.log(`Saving ${approvedPois.length} POIs to approved file: ${POIS_FILE}`);
+        try {
+            fs.writeFileSync(POIS_FILE, JSON.stringify(approvedPois, null, 2));
+            console.log('Approved file saved successfully');
+        } catch (writeError) {
+            console.error('Error writing to approved file:', writeError);
+            return res.status(500).json({ success: false, error: 'Error writing to approved file: ' + writeError.message });
+        }
         
         console.log('Successfully approved POI');
         
