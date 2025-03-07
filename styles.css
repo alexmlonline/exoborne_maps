@@ -1,0 +1,709 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  #sidebar {
+    width: 250px;
+    background-color: #272727;
+    color: #fff;
+    padding: 15px;
+    overflow-y: auto;
+    border-right: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #map-container {
+    flex: 1;
+    background-color: #1a1a1a;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  #map-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  #map-container::after {
+    content: "";
+    position: absolute;
+    top: -100%;
+    left: -100%;
+    width: 300%;
+    height: 300%;
+    background-image: 
+      repeating-linear-gradient(
+        45deg,
+        transparent 0px,
+        transparent 100px,
+        rgba(255, 255, 255, 0.03) 100px,
+        rgba(255, 255, 255, 0.03) 300px
+      ),
+      repeating-linear-gradient(
+        45deg,
+        transparent 0px,
+        transparent 200px,
+        rgba(255, 255, 255, 0.02) 200px,
+        rgba(255, 255, 255, 0.02) 400px
+      );
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  /* Add repeating EXOBORNE text */
+  @keyframes scrollBackground {
+    from { background-position: 0 0; }
+    to { background-position: 100% 100%; }
+  }
+  
+  #map-container {
+    position: relative;
+  }
+  
+  #map-container .watermark {
+    position: absolute;
+    top: -100%;
+    left: -100%;
+    width: 300%;
+    height: 300%;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      transparent 20px,
+      rgba(255, 255, 255, 0.02) 20px,
+      rgba(255, 255, 255, 0.02) 400px
+    );
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  
+
+  
+  /* Additional watermark lines */
+  #map-container .watermark-line1,
+  #map-container .watermark-line2,
+  #map-container .watermark-line3,
+  #map-container .watermark-line4,
+  #map-container .watermark-line5 {
+    position: absolute;
+    font-size: 80px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.015);
+    white-space: nowrap;
+    width: 300%;
+    height: 50px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    font-family: Arial, sans-serif;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  #map-container .watermark-line1 {
+    transform: rotate(45deg);
+    top: 200px;
+    left: -200px;
+  }
+
+  #map-container .watermark-line2 {
+    transform: rotate(45deg);
+    top: 300px;
+    left: -150px;
+  }
+
+  #map-container .watermark-line3 {
+    transform: rotate(45deg);
+    top: 400px;
+    left: -250px;
+  }
+
+  #map-container .watermark-line4 {
+    transform: rotate(-45deg);
+    top: 250px;
+    left: -100px;
+    color: rgba(255, 255, 255, 0.01);
+  }
+
+  #map-container .watermark-line5 {
+    transform: rotate(-45deg);
+    top: 350px;
+    left: -300px;
+    color: rgba(255, 255, 255, 0.01);
+  }
+  
+  #game-map {
+    position: absolute;
+    background-image: url('maps/maynard_map.jpg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    /* Prevent repetition */
+    transform-origin: 0 0;
+    cursor: move;
+    z-index: 2;
+  }
+  
+  .poi-marker {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    margin-left: -16px;
+    margin-top: -32px;
+    cursor: pointer;
+    z-index: 10;
+    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.7));
+  }
+  
+  .poi-marker svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* Increase stroke width for better visibility with transparent bodies */
+  .poi-marker svg path {
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+  
+  /* Add hover effect to make pins more noticeable */
+  .poi-marker:hover {
+    transform: scale(1.2);
+    transition: transform 0.2s ease-in-out;
+    z-index: 10;
+  }
+  
+  .poi-marker:hover svg path {
+    stroke-width: 2;
+  }
+  
+  .poi-tooltip {
+    position: fixed;
+    transform: translateX(-50%) translateY(-100%);
+    background-color: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 100;
+    white-space: nowrap;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+    text-align: center;
+    min-width: 150px;
+    margin-top: -10px;
+  }
+  
+  .tooltip-description {
+    margin-bottom: 4px;
+  }
+  
+  .approval-status {
+    font-size: 11px;
+    color: #9e9e9e;
+    text-align: center;
+    font-style: italic;
+  }
+  
+  .poi-marker.selected {
+    z-index: 11;
+    transform: scale(1.3);
+    filter: drop-shadow(0 0 5px var(--poi-glow-color, rgba(255, 255, 255, 0.8)));
+    transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
+  }
+  
+  .poi-marker.selected svg path {
+    stroke: var(--poi-stroke-color, white);
+    stroke-width: 2.5;
+    fill: var(--poi-fill-color, rgba(255, 255, 255, 0.2)); /* Semi-transparent fill for selected markers */
+  }
+  
+  #poi-list {
+    margin-top: 10px;
+  }
+  
+  #poi-list h3 {
+    margin-bottom: 8px;
+    font-size: 14px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #444;
+  }
+  
+  #poi-groups-container {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+    margin-bottom: 8px;
+  }
+
+  #page-title {
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+  }
+  
+  /* Custom scrollbar for the filter container */
+  #poi-groups-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  #poi-groups-container::-webkit-scrollbar-track {
+    background: #272727;
+  }
+  
+  #poi-groups-container::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+  }
+  
+  #poi-groups-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  .poi-group {
+    margin-bottom: 3px;
+    display: block;
+  }
+  
+  .poi-group-header {
+    display: flex;
+    align-items: center;
+    padding: 3px 5px;
+    cursor: pointer;
+    border-radius: 3px;
+    background-color: #333;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  
+  .poi-group-header input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .poi-group-header label {
+    margin-left: 5px;
+    cursor: pointer;
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .select-only-btn {
+    padding: 1px 4px;
+    font-size: 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    margin-left: 3px;
+    margin-top: 5px;
+  }
+  
+  .select-only-btn:hover {
+    background-color: #555;
+  }
+  
+  .filter-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  
+  .filter-btn {
+    padding: 3px 6px;
+    font-size: 11px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    flex: 1;
+    margin: 0 2px;
+  }
+  
+  .filter-btn:hover {
+    background-color: #555;
+  }
+  
+  .controls {
+    margin-top: 0px;
+  }
+  
+  button {
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+  
+  button:hover {
+    background-color: #555;
+  }
+  
+  #add-mode-btn.active {
+    background-color: #73a575;
+  }
+  
+  #poi-form {
+    margin-top: 20px;
+    display: none;
+    background-color: #333;
+    padding: 10px;
+    border-radius: 4px;
+  }
+  
+  #poi-form input,
+  #poi-form textarea,
+  #poi-form select {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #444;
+    color: white;
+  }
+  
+  #poi-form textarea {
+    resize: vertical;
+    height: 80px;
+  }
+  
+  #poi-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  #poi-form button {
+    margin-top: 5px;
+  }
+  
+  .map-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .map-controls button {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 5px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+  
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    z-index: 100;
+    display: none;
+  }
+  
+  .poi-actions {
+    margin-left: auto;
+  }
+  
+  .poi-actions button {
+    padding: 4px 8px;
+    font-size: 12px;
+    margin-right: 0;
+    margin-left: 5px;
+  }
+  
+  #context-menu {
+    position: absolute;
+    display: none;
+    background-color: #333;
+    color: white;
+    border-radius: 4px;
+    padding: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    width: 250px;
+    z-index: 100;
+  }
+  
+  .context-menu-form {
+    padding: 10px;
+  }
+  
+  .context-menu-field {
+    margin-bottom: 10px;
+  }
+  
+  .context-menu-field label {
+    display: block;
+    margin-bottom: 3px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+  
+  .context-menu-field input,
+  .context-menu-field select,
+  .context-menu-field textarea {
+    width: 100%;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #444;
+    color: white;
+    font-size: 12px;
+  }
+  
+  .context-menu-field textarea {
+    height: 60px;
+    resize: vertical;
+  }
+  
+  .context-menu-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  .context-menu-buttons button {
+    padding: 5px 10px;
+    font-size: 12px;
+    flex: 1;
+    margin: 0 3px;
+  }
+  
+  .context-menu-buttons button:first-child {
+    margin-left: 0;
+  }
+  
+  .context-menu-buttons button:last-child {
+    margin-right: 0;
+  }
+  
+  /* Style for POI type dropdown in context menu to show colors */
+  #context-poi-type option[value="shelter"] {
+    background-color: #272727;
+    color: #ffd700;
+  }
+  
+  #context-poi-type option[value="fragment"] {
+    background-color: #272727;
+    color: #73a575;
+  }
+  
+  #context-poi-type option[value="machinery"] {
+    background-color: #272727;
+    color: #d3d3d3;
+  }
+  
+  #context-poi-type option[value="electronics"] {
+    background-color: #272727;
+    color: #2196f3;
+  }
+  
+  #context-poi-type option[value="npc"] {
+    background-color: #272727;
+    color: #ff5722;
+  }
+  
+  #context-poi-type option[value="secret"] {
+    background-color: #272727;
+    color: #607d8b;
+  }
+  
+  #context-poi-type option[value="boss"] {
+    background-color: #272727;
+    color: #9c27b0;
+  }
+  
+  #context-poi-type option[value="bunker"] {
+    background-color: #272727;
+    color: #b8860b;
+  }
+  
+  #context-poi-type option[value="ec-kits"] {
+    background-color: #272727;
+    color: #d8b4e2; /* Light purple color for EC Kits */
+  }
+  
+  #context-poi-type option[value="collectibles"] {
+    background-color: #272727;
+    color: #FFB6C1; /* Light pink color for Collectibles */
+  }
+  
+  #context-poi-type option[value="loot"] {
+    background-color: #272727;
+    color: #9c27b0; /* Purple color for Loot */
+  }
+  
+  #context-delete-btn {
+    background-color: #f44336;
+  }
+  
+  #context-delete-btn:hover {
+    background-color: #d32f2f !important;
+  }
+  
+  #context-approve-btn {
+    background-color: #4CAF50 !important;
+    color: white;
+    border: none;
+    margin-left: 5px;
+  }
+  
+  #context-approve-btn:hover {
+    background-color: #388E3C !important;
+  }
+  
+  .coordinate-inputs {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .coordinate-field {
+    width: 48%;
+  }
+
+  .coordinate-field label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+    font-size: 14px;
+  }
+
+  .coordinate-field input {
+    width: 100%;
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+  }
+  
+  /* Style for POI type dropdown in Add POI form to show colors */
+  #poi-type option[value="shelter"] {
+    background-color: #272727;
+    color: #ffd700; /* Gold for Rebirth Shelter */
+  }
+  
+  #poi-type option[value="bunker"] {
+    background-color: #272727;
+    color: #b8860b; /* Dark gold for Rebirth Bunker */
+  }
+  
+  #poi-type option[value="fragment"] {
+    background-color: #272727;
+    color: #73a575; /* Green for Clearance Fragment */
+  }
+  
+  #poi-type option[value="machinery"] {
+    background-color: #272727;
+    color: #d3d3d3; /* Light gray for Machinery Parts */
+  }
+  
+  #poi-type option[value="electronics"] {
+    background-color: #272727;
+    color: #2196f3; /* Blue for Electronics */
+  }
+  
+  #poi-type option[value="secret"] {
+    background-color: #272727;
+    color: #607d8b; /* Blue-gray for Secrets */
+  }
+  
+  #poi-type option[value="ec-kits"] {
+    background-color: #272727;
+    color: #d8b4e2; /* Light purple for EC Kits */
+  }
+  
+  #poi-type option[value="collectibles"] {
+    background-color: #272727;
+    color: #FFB6C1; /* Light pink for Collectibles */
+  }
+  
+  #poi-type option[value="loot"] {
+    background-color: #272727;
+    color: #9c27b0; /* Purple for Loot */
+  }
+  
+  #poi-type option[value="container"] {
+    background-color: #272727;
+    color: #9b8840; /* Gold-brown for Locked Containers */
+  }
+  
+  #show-unapproved-btn {
+    background-color: #ff5722;
+    color: white;
+    border: 1px solid #e64a19;
+    padding: 5px 10px;
+    font-size: 12px;
+    transition: background-color 0.2s;
+  }
+  
+  #show-unapproved-btn:hover {
+    background-color: #e64a19;
+  }
+  
+  /* Styling for POIs created in the current session */
+  .poi-marker.current-session {
+    filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.7));
+  }
+
+  .poi-marker.current-session:hover::after {
+    content: "Created in this session";
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    white-space: nowrap;
+    z-index: 12;
+  }
+  
