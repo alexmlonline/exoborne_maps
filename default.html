@@ -187,11 +187,12 @@
     </div>
 
     <div class="map-selector-container">
-      <select id="map-select-overlay" disabled>
+      <select id="map-select-overlay" disabled title="Additional maps will be added in future updates">
         <option value="maynard" selected>Maynard</option>
-        <option value="agnesville" disabled>Agnesville [TBD]</option>
-        <option value="sinkhole" disabled>Sinkhole [TBD]</option>
+        <option value="agnesville" disabled>Agnesville [Coming Soon]</option>
+        <option value="sinkhole" disabled>Sinkhole [Coming Soon]</option>
       </select>
+      <div class="map-tooltip">More maps coming soon!</div>
     </div>
 
     <div class="left-controls">
@@ -338,35 +339,33 @@
       opacity: 0.9;
     }
 
-    .map-selector {
-      margin-bottom: 10px;
-      width: 100%;
-    }
-    
-    .map-selector label {
-      display: block;
-      margin-bottom: 5px;
-      color: #ccc;
-      font-size: 14px;
-    }
-    
-    .map-selector select {
-      width: 100%;
-      padding: 8px;
-      background-color: #333;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 4px;
-      cursor: not-allowed;
-      opacity: 0.8;
-    }
-
     .map-selector-container {
       position: absolute;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 20;
+    }
+    
+    .map-tooltip {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 5px;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .map-selector-container:hover .map-tooltip {
+      opacity: 1;
     }
 
     #map-select-overlay {
