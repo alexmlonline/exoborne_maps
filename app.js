@@ -250,7 +250,7 @@ function initMap() {
   updateZoomIndicator();
   
   // Show session management UI
-  showSessionManagement();
+  // showSessionManagement(); // Removed as requested
 
   // Mouse events for dragging
   mapElement.on('mousedown', startDragging);
@@ -289,6 +289,18 @@ function initMap() {
   $('#save-poi-btn').on('click', savePoi);
   $('#cancel-poi-btn').on('click', cancelAddPoi);
   $('#session-btn').on('click', showSessionManagement);
+  
+  // Add event handler for the new session link
+  $(document).on('click', '#create-new-session', function(e) {
+    e.preventDefault();
+    if (confirm('Starting a new session will prevent you from deleting POIs created in previous sessions. Continue?')) {
+      // Generate a new session ID
+      sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem(SESSION_KEY, sessionId);
+      showNotification('New session started. You can now create and delete new POIs.');
+      renderPois(); // Re-render to update session indicators
+    }
+  });
 
   // Initialize the context menu
   updateContextMenuHtml();
