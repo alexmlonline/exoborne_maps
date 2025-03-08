@@ -1965,6 +1965,25 @@ function hideNonUrlPois(selectedIds) {
 // Note: We always hide other POIs when multiple POIs are selected, so no need for a restore function
 
 $(document).ready(function () {
+  // Mobile placeholder "Continue Anyway" button
+  $('#continue-anyway-btn').on('click', function() {
+    $('#mobile-placeholder').hide();
+    $('body > *:not(#mobile-placeholder)').css('display', '');
+    
+    // Force layout recalculation
+    setTimeout(function() {
+      // Adjust map size for mobile
+      const containerWidth = $('#map-container').width();
+      const containerHeight = $('#map-container').height();
+      
+      // Reset view to ensure map is visible
+      resetMapView();
+      
+      // Show notification about limited functionality
+      showNotification('Mobile experience may have limited functionality', false, 5000);
+    }, 100);
+  });
+
   // Initialize the map
   initMap();
   

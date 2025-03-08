@@ -746,3 +746,109 @@
     z-index: 12;
   }
   
+  /* Mobile placeholder overlay */
+  #mobile-placeholder {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    color: white;
+  }
+
+  #mobile-placeholder h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    color: #ffd700;
+  }
+
+  #mobile-placeholder p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    max-width: 90%;
+  }
+
+  #mobile-placeholder .icon {
+    font-size: 60px;
+    margin-bottom: 20px;
+    color: #ffd700;
+  }
+
+  #mobile-placeholder .desktop-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+    background-color: #333;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  #mobile-placeholder .desktop-icon .monitor {
+    height: 50px;
+    background-color: #222;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #mobile-placeholder .desktop-icon .monitor::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+    opacity: 0.7;
+    border-radius: 2px;
+  }
+
+  #mobile-placeholder .desktop-icon .stand {
+    height: 10px;
+    width: 30px;
+    background-color: #444;
+    margin: 0 auto;
+    border-radius: 0 0 5px 5px;
+  }
+
+  #mobile-placeholder .continue-anyway {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #333;
+    color: white;
+    border: 1px solid #ffd700;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+
+  #mobile-placeholder .continue-anyway:hover {
+    background-color: #444;
+    transform: scale(1.05);
+  }
+
+  /* Media query for mobile devices */
+  @media (max-width: 768px) {
+    #mobile-placeholder {
+      display: flex;
+    }
+    
+    body > *:not(#mobile-placeholder) {
+      display: none;
+    }
+  }
+  
