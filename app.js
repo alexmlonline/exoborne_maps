@@ -1965,6 +1965,33 @@ function hideNonUrlPois(selectedIds) {
 // Note: We always hide other POIs when multiple POIs are selected, so no need for a restore function
 
 $(document).ready(function () {
+  // Check if this is the user's first visit or if they haven't chosen to hide the welcome message
+  function checkFirstVisit() {
+    // Only hide the welcome message if the user has explicitly chosen to never show it again
+    if (localStorage.getItem('exoborne_never_show_welcome') === 'true') {
+      // User has chosen to never show the welcome message again
+      return;
+    }
+    
+    // Show welcome placeholder
+    $('#welcome-placeholder').css('display', 'flex');
+    
+    // Add event listener for the "Got it" button
+    $('#welcome-got-it-btn').on('click', function() {
+      // Check if "Never show again" is checked
+      if ($('#never-show-welcome').is(':checked')) {
+        // Set the flag in localStorage to remember that the user doesn't want to see the welcome message again
+        localStorage.setItem('exoborne_never_show_welcome', 'true');
+      }
+      
+      // Hide the welcome placeholder
+      $('#welcome-placeholder').fadeOut(500);
+    });
+  }
+  
+  // Call the function to check if it's the first visit
+  checkFirstVisit();
+
   // Mobile placeholder "Continue Anyway" button
   $('#continue-anyway-btn').on('click', function() {
     $('#mobile-placeholder').hide();

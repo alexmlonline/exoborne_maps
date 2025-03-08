@@ -852,3 +852,137 @@
     }
   }
   
+  /* Welcome placeholder overlay */
+  #welcome-placeholder {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    color: white;
+    backdrop-filter: blur(5px);
+  }
+
+  #welcome-placeholder .welcome-content {
+    max-width: 600px;
+    background-color: #272727;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    position: relative;
+  }
+
+  #welcome-placeholder h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #ffd700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  #welcome-placeholder p {
+    font-size: 16px;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    color: #e0e0e0;
+  }
+
+  #welcome-placeholder .highlight {
+    color: #ffd700;
+    font-weight: bold;
+  }
+
+  #welcome-placeholder .welcome-footer {
+    margin-top: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #welcome-placeholder .never-show-again {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #aaa;
+  }
+
+  #welcome-placeholder .never-show-again input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  #welcome-placeholder .never-show-again label {
+    cursor: pointer;
+  }
+
+  #welcome-placeholder .got-it-btn {
+    padding: 12px 30px;
+    background-color: #ffd700;
+    color: #272727;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  #welcome-placeholder .got-it-btn:hover {
+    background-color: #ffea00;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+
+  #welcome-placeholder .welcome-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background-color: #333;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    border: 2px solid #ffd700;
+  }
+
+  #welcome-placeholder .welcome-icon svg {
+    width: 50px;
+    height: 50px;
+    fill: #ffd700;
+  }
+
+  #welcome-placeholder .feature-list {
+    text-align: left;
+    margin: 20px 0;
+    padding-left: 20px;
+  }
+
+  #welcome-placeholder .feature-list li {
+    margin-bottom: 10px;
+    position: relative;
+    padding-left: 25px;
+  }
+
+  #welcome-placeholder .feature-list li:before {
+    content: "•";
+    color: #ffd700;
+    font-size: 20px;
+    position: absolute;
+    left: 0;
+    top: -2px;
+  }
+  
