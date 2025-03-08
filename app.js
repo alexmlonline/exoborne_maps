@@ -802,13 +802,21 @@ function selectPoi(id, useCtrlKey = false) {
   // Update the visual state of all POI markers
   $('.poi-marker').removeClass('selected multi-selected');
   
-  // Apply styling to all selected POIs
+  // Remove highlight from all group headers
+  $('.poi-group-header').removeClass('highlighted');
+  
+  // Apply styling to all selected POIs and highlight their groups
+  const selectedTypes = new Set(); // Track unique types of selected POIs
+  
   selectedPois.forEach(poiId => {
     const marker = $(`.poi-marker[data-id="${poiId}"]`);
     marker.addClass(poiId === selectedPoi ? 'selected' : 'multi-selected');
     
     const poi = pois.find(p => p.id === poiId);
     if (poi) {
+      // Add the POI type to the set of selected types
+      selectedTypes.add(poi.type);
+      
       // Get the color for this POI type
       const poiColor = getPoiColor(poi.type);
       
@@ -823,6 +831,14 @@ function selectPoi(id, useCtrlKey = false) {
         marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
       }
     }
+  });
+  
+  // Highlight the group headers for the selected POI types
+  selectedTypes.forEach(type => {
+    // Find the group checkbox with the matching data-type
+    const checkbox = $(`.group-checkbox[data-type="${type}"]`);
+    // Highlight its parent group header
+    checkbox.closest('.poi-group-header').addClass('highlighted');
   });
   
   // Update selection indicator in sidebar
@@ -1780,6 +1796,13 @@ function updateSelectionFromUrl() {
       
       // Update the visual state of markers
       $('.poi-marker').removeClass('selected multi-selected');
+      
+      // Remove highlight from all group headers
+      $('.poi-group-header').removeClass('highlighted');
+      
+      // Track unique types of selected POIs
+      const selectedTypes = new Set();
+      
       selectedPois.forEach(id => {
         const marker = $(`.poi-marker[data-id="${id}"]`);
         marker.addClass(id === selectedPoi ? 'selected' : 'multi-selected');
@@ -1787,6 +1810,9 @@ function updateSelectionFromUrl() {
         // Apply styling
         const poi = pois.find(p => p.id === id);
         if (poi) {
+          // Add the POI type to the set of selected types
+          selectedTypes.add(poi.type);
+          
           const poiColor = getPoiColor(poi.type);
           const colorValues = hexToRgb(poiColor);
           if (colorValues) {
@@ -1795,6 +1821,14 @@ function updateSelectionFromUrl() {
             marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
           }
         }
+      });
+      
+      // Highlight the group headers for the selected POI types
+      selectedTypes.forEach(type => {
+        // Find the group checkbox with the matching data-type
+        const checkbox = $(`.group-checkbox[data-type="${type}"]`);
+        // Highlight its parent group header
+        checkbox.closest('.poi-group-header').addClass('highlighted');
       });
       
       // Update the selection indicator
@@ -2018,7 +2052,11 @@ $(document).ready(function () {
       // Deselect any selected POI
       if (selectedPoi) {
         selectedPoi = null;
-        $('.poi-marker').removeClass('selected');
+        $('.poi-marker').removeClass('selected multi-selected');
+        // Clear group highlighting
+        $('.poi-group-header').removeClass('highlighted');
+        updateSelectionIndicator();
+        updateUrlWithSelection();
       }
     }
   });
@@ -2033,7 +2071,11 @@ $(document).ready(function () {
         // Deselect any selected POI
         if (selectedPoi) {
           selectedPoi = null;
-          $('.poi-marker').removeClass('selected');
+          $('.poi-marker').removeClass('selected multi-selected');
+          // Clear group highlighting
+          $('.poi-group-header').removeClass('highlighted');
+          updateSelectionIndicator();
+          updateUrlWithSelection();
         }
       }
     }
@@ -2104,6 +2146,8 @@ $(document).ready(function () {
     selectedPoi = null;
     selectedPois = [];
     $('.poi-marker').removeClass('selected multi-selected');
+    // Clear group highlighting
+    $('.poi-group-header').removeClass('highlighted');
     updateSelectionIndicator();
     
     showNotification('All groups selected, URL parameters cleared');
@@ -2121,6 +2165,8 @@ $(document).ready(function () {
     selectedPoi = null;
     selectedPois = [];
     $('.poi-marker').removeClass('selected multi-selected');
+    // Clear group highlighting
+    $('.poi-group-header').removeClass('highlighted');
     updateSelectionIndicator();
     
     showNotification('All groups deselected, URL parameters cleared');
@@ -2144,6 +2190,8 @@ $(document).ready(function () {
     selectedPoi = null;
     selectedPois = [];
     $('.poi-marker').removeClass('selected multi-selected');
+    // Clear group highlighting
+    $('.poi-group-header').removeClass('highlighted');
     updateSelectionIndicator();
     
     // Center the map on POIs of the selected type
@@ -2248,6 +2296,8 @@ $(document).ready(function () {
     selectedPoi = null;
     selectedPois = [];
     $('.poi-marker').removeClass('selected multi-selected');
+    // Clear group highlighting
+    $('.poi-group-header').removeClass('highlighted');
     updateSelectionIndicator();
     updateUrlWithSelection();
   });
@@ -2271,6 +2321,8 @@ $(document).ready(function () {
         selectedPoi = null;
         selectedPois = [];
         $('.poi-marker').removeClass('selected multi-selected');
+        // Clear group highlighting
+        $('.poi-group-header').removeClass('highlighted');
         updateSelectionIndicator();
         updateUrlWithSelection();
       }

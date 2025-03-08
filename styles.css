@@ -329,6 +329,18 @@
     font-size: 14px;
   }
   
+  .poi-group-header.highlighted {
+    background-color: #444;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    position: relative;
+    animation: groupHighlight 2s infinite alternate;
+  }
+  
+  @keyframes groupHighlight {
+    from { background-color: #444; }
+    to { background-color: #555; }
+  }
+  
   .poi-group-header input[type="checkbox"] {
     width: 14px;
     height: 14px;
