@@ -542,11 +542,13 @@ function resetMapView() {
   // Use the larger of DEFAULT_ZOOM or minZoom
   currentZoom = Math.max(DEFAULT_ZOOM, minZoom);
 
-  // Center the map initially
-  mapPosition.x = 0;
-  mapPosition.y = 0;
+  // Calculate the center position directly
+  // This ensures the map is centered regardless of its size relative to the container
+  mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
+  mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
   
   // Apply boundary constraints to ensure the map stays within the viewport
+  // This is still needed for cases where the map is larger than the container
   applyMapBoundaryConstraints(containerWidth, containerHeight);
 
   updateMapTransform();
