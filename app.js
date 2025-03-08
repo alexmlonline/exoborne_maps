@@ -1664,6 +1664,15 @@ function updateGroupsFromUrl() {
     
     // Trigger change event for all checkboxes to update visibility
     $('.group-checkbox').trigger('change');
+    
+    // If exactly one group is selected, center the map on the POIs of that group
+    if (groups.length === 1) {
+      // Wait a short moment for the POIs to be rendered
+      setTimeout(() => {
+        centerMapOnPoisOfType(groups[0]);
+        showNotification(`Centered map on ${groups[0]} POIs`);
+      }, 300);
+    }
   }
 }
 
