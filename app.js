@@ -1409,8 +1409,18 @@ function renderPois() {
         svgPath = `<path fill="transparent" 
                       stroke="${poiColor}" 
                       stroke-width="1.5"
-                      d="M4,10 l8,-6 l8,6 v10 h-16 v-10 
-         M8,14 h8"/>`;
+                      d="M4,10 l8,-6 l8,6 v10 h-16 v-10 M8,14 h8"/>`;
+      } else if (poi.type === 'bunker') {
+        // Underground bunker icon with stairs
+        svgPath = `<path fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="4"
+                      d="M6,4 h12 v4 h-12 v-4 
+         M10,4 v16 
+         M14,4 v16 
+         M10,8 h4 
+         M10,12 h4 
+         M10,16 h4"/>`;
       } else {
         // Default location marker for all other POIs
         svgPath = `<path fill="transparent" 
