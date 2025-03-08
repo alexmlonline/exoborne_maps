@@ -2440,6 +2440,24 @@ function handleAddModeClick(e) {
 
 // Function to update zoom level indicator
 function updateZoomIndicator() {
+  // Create build info indicator if it doesn't exist
+  if ($('#build-info').length === 0) {
+    const buildInfo = $('<div id="build-info">Work in progress, CPT3 data</div>');
+    buildInfo.css({
+      'position': 'absolute',
+      'bottom': '40px',
+      'left': '10px',
+      'background-color': 'rgba(0, 0, 0, 0.7)',
+      'color': '#ffd700', // Gold color for emphasis
+      'padding': '5px 10px',
+      'border-radius': '4px',
+      'z-index': '20',
+      'font-size': '14px',
+      'font-weight': 'bold'
+    });
+    $('#map-container').append(buildInfo);
+  }
+
   // Create zoom indicator if it doesn't exist
   if ($('#zoom-level').length === 0) {
     const zoomIndicator = $('<div id="zoom-level"></div>');
