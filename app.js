@@ -794,6 +794,7 @@ function selectPoi(id, useCtrlKey = false) {
     }
   } else {
     // Regular single selection (no Ctrl key)
+    // Always clear previous selection when not using Ctrl key
     selectedPoi = id;
     selectedPois = [id]; // Reset multi-selection to just this POI
   }
@@ -1456,16 +1457,26 @@ function renderPois() {
               if (overlappingPois.length > 1) {
                   // If there are overlapping POIs and one is already selected
                   if (selectedPoi) {
-                      // Find the index of the currently selected POI
+                      // Check if we're already cycling through these overlapping POIs
                       const currentIndex = overlappingPois.findIndex(p => p.id === selectedPoi);
                       
-                      // Select the next POI in the list (or the first if at the end)
-                      const nextIndex = (currentIndex + 1) % overlappingPois.length;
-                      selectPoi(overlappingPois[nextIndex].id);
-                      
-                      // Show a notification about cycling
-                      if (overlappingPois.length > 2) {
-                          showNotification(`Cycling through ${overlappingPois.length} overlapping POIs (${nextIndex + 1}/${overlappingPois.length})`, false);
+                      // If the currently selected POI is not in the overlapping set or we have multiple POIs selected,
+                      // then we should reset the selection to just this POI
+                      if (currentIndex === -1 || selectedPois.length > 1) {
+                          // Reset selection to just this POI
+                          selectPoi(clickedPoiId);
+                          
+                          // Show a notification about multiple POIs
+                          showNotification(`${overlappingPois.length} overlapping POIs found. Click again to cycle through them.`, false);
+                      } else {
+                          // Continue cycling through overlapping POIs
+                          const nextIndex = (currentIndex + 1) % overlappingPois.length;
+                          selectPoi(overlappingPois[nextIndex].id);
+                          
+                          // Show a notification about cycling
+                          if (overlappingPois.length > 2) {
+                              showNotification(`Cycling through ${overlappingPois.length} overlapping POIs (${nextIndex + 1}/${overlappingPois.length})`, false);
+                          }
                       }
                   } else {
                       // If no POI is selected, select the clicked one
@@ -1701,19 +1712,9 @@ function updateUrlWithGroups() {
     const urlParams = new URLSearchParams(window.location.search);
     const currentSelect = urlParams.get('select');
     
-    // If there's a current select parameter and it has multiple POIs,
-    // make sure all selectedPois are included
-    if (currentSelect && currentSelect.split(',').length > 1) {
-      // Get the POI IDs from the URL
-      const urlSelectedIds = currentSelect.split(',');
-      
-      // Add any POIs from the URL that aren't in selectedPois
-      urlSelectedIds.forEach(id => {
-        if (!selectedPois.includes(id) && pois.some(p => p.id === id)) {
-          selectedPois.push(id);
-        }
-      });
-    }
+    // REMOVED: We no longer merge POIs from the URL with the current selection
+    // This was causing the issue where clicking on a POI without Ctrl key
+    // would still add to the previous selection instead of replacing it
     
     params.push(`select=${selectedPois.join(',')}`);
   } else {
