@@ -638,6 +638,40 @@ function savePoi() {
     // Send unapproved POI to server
     saveUnapprovedPoi(poi);
     
+    // Check if we have multiple POIs selected in the URL
+    const manualParams = getUrlParameters();
+    if (manualParams.select && manualParams.select.split(',').length > 1) {
+      // Add the new POI to the selected POIs list
+      selectedPois.push(poi.id);
+      selectedPoi = poi.id; // Make the new POI the primary selection
+      
+      // Update the URL with the new selection
+      updateUrlWithSelection();
+      
+      // Ensure the new POI is visible
+      poi.visible = true;
+      
+      // Update the visual state of the POI marker
+      const marker = $(`.poi-marker[data-id="${poi.id}"]`);
+      marker.addClass('selected');
+      
+      // Apply styling to the marker
+      const poiColor = getPoiColor(poi.type);
+      const colorValues = hexToRgb(poiColor);
+      if (colorValues) {
+        marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
+        marker.css('--poi-stroke-color', poiColor);
+        marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
+      }
+      
+      // Update selection indicator
+      updateSelectionIndicator();
+      
+      showNotification('POI added and selected (awaiting approval)');
+    } else {
+      showNotification('POI added successfully (awaiting approval)');
+    }
+    
     // Reset form and exit add mode
     $('#poi-form').hide();
     $('#poi-desc').val('');
@@ -650,8 +684,6 @@ function savePoi() {
     
     // Hide the context menu
     $('#context-menu').hide();
-    
-    showNotification('POI added successfully (awaiting approval)');
     
     return;
   }
@@ -683,6 +715,40 @@ function savePoi() {
   // Send unapproved POI to server
   saveUnapprovedPoi(poi);
 
+  // Check if we have multiple POIs selected in the URL
+  const manualParams = getUrlParameters();
+  if (manualParams.select && manualParams.select.split(',').length > 1) {
+    // Add the new POI to the selected POIs list
+    selectedPois.push(poi.id);
+    selectedPoi = poi.id; // Make the new POI the primary selection
+    
+    // Update the URL with the new selection
+    updateUrlWithSelection();
+    
+    // Ensure the new POI is visible
+    poi.visible = true;
+    
+    // Update the visual state of the POI marker
+    const marker = $(`.poi-marker[data-id="${poi.id}"]`);
+    marker.addClass('selected');
+    
+    // Apply styling to the marker
+    const poiColor = getPoiColor(poi.type);
+    const colorValues = hexToRgb(poiColor);
+    if (colorValues) {
+      marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
+      marker.css('--poi-stroke-color', poiColor);
+      marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
+    }
+    
+    // Update selection indicator
+    updateSelectionIndicator();
+    
+    showNotification('POI added and selected (awaiting approval)');
+  } else {
+    showNotification('POI added successfully (awaiting approval)');
+  }
+
   // Reset form and add mode
   $('#poi-form').hide();
   tempPoi = null;
@@ -692,8 +758,6 @@ function savePoi() {
 
   // Hide the context menu
   $('#context-menu').hide();
-
-  showNotification('POI added successfully (awaiting approval)');
 }
 
 function cancelAddPoi() {
@@ -1637,6 +1701,24 @@ function updateUrlWithGroups() {
   // If there are selected POIs, we'll only include those in the URL
   // and ignore group parameters
   if (selectedPois.length > 0) {
+    // Get the current select parameter from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSelect = urlParams.get('select');
+    
+    // If there's a current select parameter and it has multiple POIs,
+    // make sure all selectedPois are included
+    if (currentSelect && currentSelect.split(',').length > 1) {
+      // Get the POI IDs from the URL
+      const urlSelectedIds = currentSelect.split(',');
+      
+      // Add any POIs from the URL that aren't in selectedPois
+      urlSelectedIds.forEach(id => {
+        if (!selectedPois.includes(id) && pois.some(p => p.id === id)) {
+          selectedPois.push(id);
+        }
+      });
+    }
+    
     params.push(`select=${selectedPois.join(',')}`);
   } else {
     // Only include group parameters if no POIs are selected
@@ -1822,6 +1904,14 @@ function hideNonUrlPois(selectedIds) {
     
     // Then make only the selected POIs visible
     selectedIds.forEach(id => {
+      const poi = pois.find(p => p.id === id);
+      if (poi) {
+        poi.visible = true;
+      }
+    });
+    
+    // Also make any POIs in the selectedPois array visible (for newly added POIs)
+    selectedPois.forEach(id => {
       const poi = pois.find(p => p.id === id);
       if (poi) {
         poi.visible = true;
