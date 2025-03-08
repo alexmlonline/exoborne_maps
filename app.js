@@ -1733,15 +1733,15 @@ function updateUrlWithGroups() {
   // If there are selected POIs, we'll only include those in the URL
   // and ignore group parameters
   if (selectedPois.length > 0) {
-    // Get the current select parameter from the URL
+    // Get the current locations parameter from the URL
     const urlParams = new URLSearchParams(window.location.search);
-    const currentSelect = urlParams.get('select');
+    const currentLocations = urlParams.get('locations');
     
     // REMOVED: We no longer merge POIs from the URL with the current selection
     // This was causing the issue where clicking on a POI without Ctrl key
     // would still add to the previous selection instead of replacing it
     
-    params.push(`select=${selectedPois.join(',')}`);
+    params.push(`locations=${selectedPois.join(',')}`);
   } else {
     // Only include group parameters if no POIs are selected
     const selectedGroups = [];
@@ -1759,10 +1759,10 @@ function updateUrlWithGroups() {
     }
   }
   
-  // Add any other existing parameters except 'group' and 'select'
+  // Add any other existing parameters except 'group' and 'locations'
   const urlParams = new URLSearchParams(window.location.search);
   for (const [key, value] of urlParams.entries()) {
-    if (key !== 'group' && key !== 'select') {
+    if (key !== 'group' && key !== 'locations') {
       params.push(`${key}=${encodeURIComponent(value)}`);
     }
   }
@@ -1786,9 +1786,9 @@ function updateUrlWithSelection() {
 function updateSelectionFromUrl() {
   const params = getUrlParameters();
   
-  if (params.select) {
+  if (params.locations) {
     // Get the POI IDs from the URL
-    const selectedIds = params.select.split(',');
+    const selectedIds = params.locations.split(',');
     
     // Clear existing selection
     selectedPois = [];
@@ -1846,7 +1846,7 @@ function updateSelectionFromUrl() {
   }
 }
 
-// Function to process URLs and identify loaded POIs from the select parameter
+// Function to process URLs and identify loaded POIs from the locations parameter
 function processUrlSelectedPois() {
   // Check if we've already processed the URL
   if (window.urlPoisProcessed) {
@@ -1855,13 +1855,13 @@ function processUrlSelectedPois() {
   
   const params = getUrlParameters();
   
-  if (!params.select) {
+  if (!params.locations) {
     window.urlPoisProcessed = true;
     return; // No POIs to process in URL
   }
   
   // Get the POI IDs from the URL
-  const selectedIds = params.select.split(',');
+  const selectedIds = params.locations.split(',');
   
   // Check if all selected POIs exist in the loaded POIs
   const validIds = selectedIds.filter(id => pois.some(p => p.id === id));
@@ -1877,12 +1877,12 @@ function processUrlSelectedPois() {
       let newUrl = window.location.pathname;
       let params = [];
       
-      params.push(`select=${validIds.join(',')}`);
+      params.push(`locations=${validIds.join(',')}`);
       
       // Add any other existing parameters except 'group' and 'select'
       const urlParams = new URLSearchParams(window.location.search);
       for (const [key, value] of urlParams.entries()) {
-        if (key !== 'group' && key !== 'select') {
+        if (key !== 'group' && key !== 'select' && key !== 'locations') {
           params.push(`${key}=${encodeURIComponent(value)}`);
         }
       }
@@ -1895,14 +1895,14 @@ function processUrlSelectedPois() {
       // Update the URL without reloading the page
       window.history.replaceState({}, document.title, newUrl);
     } else {
-      // If no valid POIs, remove the select parameter
+      // If no valid POIs, remove the locations parameter
       let newUrl = window.location.pathname;
       let params = [];
       
-      // Add any other existing parameters except 'group' and 'select'
+      // Add any other existing parameters except 'group', 'select', and 'locations'
       const urlParams = new URLSearchParams(window.location.search);
       for (const [key, value] of urlParams.entries()) {
-        if (key !== 'group' && key !== 'select') {
+        if (key !== 'group' && key !== 'select' && key !== 'locations') {
           params.push(`${key}=${encodeURIComponent(value)}`);
         }
       }
@@ -1922,7 +1922,7 @@ function processUrlSelectedPois() {
   
   // Apply the selection
   updateSelectionFromUrl();
-
+  
   // Hide all other POIs that aren't in url
   hideNonUrlPois(validIds);
   
@@ -1933,7 +1933,7 @@ function processUrlSelectedPois() {
   window.urlPoisProcessed = true;
 }
 
-// Function to hide all POIs that aren't in the URL's select parameter
+// Function to hide all POIs that aren't in the URL's locations parameter
 function hideNonUrlPois(selectedIds) {
   // Always hide other POIs when multiple POIs are selected
   if (selectedIds && selectedIds.length > 1) {
@@ -2767,10 +2767,10 @@ function clearUrlParameters() {
   let newUrl = window.location.pathname;
   let params = [];
   
-  // Add any other existing parameters except 'group' and 'select'
+  // Add any other existing parameters except 'group' and 'locations'
   const urlParams = new URLSearchParams(window.location.search);
   for (const [key, value] of urlParams.entries()) {
-    if (key !== 'group' && key !== 'select') {
+    if (key !== 'group' && key !== 'locations') {
       params.push(`${key}=${encodeURIComponent(value)}`);
     }
   }
