@@ -1390,6 +1390,9 @@ function renderPois() {
       const poiColor = getPoiColor(poi.type);
       
       // Calculate adjusted coordinates for each POI
+      //const realX = 585
+      //const realY = 1180;
+
       const realX = (poi.x / 1.664) + offsetX;
       const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
 
@@ -1404,13 +1407,6 @@ function renderPois() {
                       stroke="${poiColor}" 
                       stroke-width="1.5"
                       d="M12,2.3l2.9,6.9l7.1,0.6l-5.3,4.9l1.6,6.8L12,17.8l-6.3,3.7l1.6-6.8L2,9.8l7.1-0.6L12,2.3z"/>`;
-      } else if (poi.type === 'shelter') {
-        // Container/room icon for Shelter POIs
-        svgPath = `<path fill="transparent" 
-                      stroke="${poiColor}" 
-                      stroke-width="1.5"
-                      d="M4,10 l8,-6 l8,6 v10 h-16 v-10 
-         M8,14 h8"/>`;
       } else {
         // Default location marker for all other POIs
         svgPath = `<path fill="transparent" 
@@ -1477,6 +1473,83 @@ function renderPois() {
               visibility: 'hidden',
               opacity: 0
           });
+      });
+
+      // Add click handler for cycling through overlapping POIs
+      marker.on('click', function(e) {
+          e.stopPropagation(); // Prevent the map click handler from firing
+          
+          const clickedPoiId = $(this).data('id');
+          const clickedPoi = pois.find(p => p.id === clickedPoiId);
+          
+          if (clickedPoi) {
+              // Check if ctrl key is pressed for multi-selection
+              if (e.ctrlKey) {
+                  selectPoi(clickedPoiId, true);
+                  return;
+              }
+              
+              // Find all overlapping POIs
+              const overlappingPois = findOverlappingPois(clickedPoi.x, clickedPoi.y);
+              
+              if (overlappingPois.length > 1) {
+                  // If there are overlapping POIs and one is already selected
+                  if (selectedPoi) {
+                      // Check if we're already cycling through these overlapping POIs
+                      const currentIndex = overlappingPois.findIndex(p => p.id === selectedPoi);
+                      
+                      // If the currently selected POI is not in the overlapping set or we have multiple POIs selected,
+                      // then we should reset the selection to just this POI
+                      if (currentIndex === -1 || selectedPois.length > 1) {
+                          // Reset selection to just this POI
+                          selectPoi(clickedPoiId);
+                          
+                          // Show a notification about multiple POIs
+                          showNotification(`${overlappingPois.length} overlapping POIs found. Click again to cycle through them.`, false);
+                      } else {
+                          // Continue cycling through overlapping POIs
+                          const nextIndex = (currentIndex + 1) % overlappingPois.length;
+                          selectPoi(overlappingPois[nextIndex].id);
+                          
+                          // Show a notification about cycling
+                          if (overlappingPois.length > 2) {
+                              showNotification(`Cycling through ${overlappingPois.length} overlapping POIs (${nextIndex + 1}/${overlappingPois.length})`, false);
+                          }
+                      }
+                  } else {
+                      // If no POI is selected, select the clicked one
+                      selectPoi(clickedPoiId);
+                      
+                      // Show a notification about multiple POIs
+                      if (overlappingPois.length > 1) {
+                          showNotification(`${overlappingPois.length} overlapping POIs found. Click again to cycle through them.`, false);
+                      }
+                  }
+              } else {
+                  // If there's only one POI, simply select it
+                  selectPoi(clickedPoiId);
+              }
+          }
+      });
+
+      // Add right-click handler for editing POIs
+      marker.on('contextmenu', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const poiId = $(this).data('id');
+          selectPoi(poiId); // Select the POI that was right-clicked
+          showEditContextMenu(poiId, e.pageX, e.pageY);
+      });
+
+      // Add double-click handler as an alternative way to edit POIs
+      marker.on('dblclick', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const poiId = $(this).data('id');
+          selectPoi(poiId); // Select the POI that was double-clicked
+          showEditContextMenu(poiId, e.pageX, e.pageY);
       });
 
       $('#game-map').append(marker);
