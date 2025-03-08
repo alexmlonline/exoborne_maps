@@ -439,32 +439,16 @@ function dragMap(e) {
   const mouseY = e.pageY;
 
   // Calculate new position based on the drag start point
-  let newX = (mouseX - dragStart.x) / currentZoom;
-  let newY = (mouseY - dragStart.y) / currentZoom;
+  mapPosition.x = (mouseX - dragStart.x) / currentZoom;
+  mapPosition.y = (mouseY - dragStart.y) / currentZoom;
 
   // Get container dimensions
   const containerWidth = $('#map-container').width();
   const containerHeight = $('#map-container').height();
 
-  // Calculate boundaries
-  const maxX = 0;
-  const minX = containerWidth / currentZoom - MAP_WIDTH;
-  const maxY = 0;
-  const minY = containerHeight / currentZoom - MAP_HEIGHT;
+  // Apply boundary constraints
+  applyMapBoundaryConstraints(containerWidth, containerHeight);
 
-  if (MAP_WIDTH * currentZoom > containerWidth) {
-    newX = Math.max(minX, Math.min(maxX, newX));
-  } else {
-    newX = (containerWidth / currentZoom - MAP_WIDTH) / 2;
-  }
-
-  if (MAP_HEIGHT * currentZoom > containerHeight) {
-    newY = Math.max(minY, Math.min(maxY, newY));
-  } else {
-    newY = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
-  }
-
-  mapPosition = { x: newX, y: newY };
   updateMapTransform();
 }
 
@@ -505,21 +489,8 @@ function changeZoom(delta, cursorX, cursorY) {
   mapPosition.x = -centerMapX + centerX / currentZoom;
   mapPosition.y = -centerMapY + centerY / currentZoom;
 
-  if (MAP_WIDTH * currentZoom < containerWidth) {
-    mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
-  } else {
-    const minX = containerWidth / currentZoom - MAP_WIDTH;
-    const maxX = 0;
-    mapPosition.x = Math.max(minX, Math.min(maxX, mapPosition.x));
-  }
-
-  if (MAP_HEIGHT * currentZoom < containerHeight) {
-    mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
-  } else {
-    const minY = containerHeight / currentZoom - MAP_HEIGHT;
-    const maxY = 0;
-    mapPosition.y = Math.max(minY, Math.min(maxY, mapPosition.y));
-  }
+  // Apply boundary constraints
+  applyMapBoundaryConstraints(containerWidth, containerHeight);
 
   updateMapTransform();
   
@@ -559,8 +530,12 @@ function resetMapView() {
   // Use the larger of DEFAULT_ZOOM or minZoom
   currentZoom = Math.max(DEFAULT_ZOOM, minZoom);
 
-  mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
-  mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
+  // Center the map initially
+  mapPosition.x = 0;
+  mapPosition.y = 0;
+  
+  // Apply boundary constraints to ensure the map stays within the viewport
+  applyMapBoundaryConstraints(containerWidth, containerHeight);
 
   updateMapTransform();
   updateZoomIndicator();
@@ -1966,9 +1941,8 @@ $(document).ready(function () {
       if (currentZoom < minZoom) {
         currentZoom = minZoom;
         
-        // Recenter the map
-        mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
-        mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
+        // Apply boundary constraints to ensure the map stays within the viewport
+        applyMapBoundaryConstraints(containerWidth, containerHeight);
         
         updateMapTransform();
         updateZoomIndicator();
@@ -2534,6 +2508,12 @@ function centerMapOnSelectedPois() {
   const containerWidth = $('#map-container').width();
   const containerHeight = $('#map-container').height();
   
+  // Calculate minimum zoom level based on container dimensions
+  // This ensures the map always fills at least one dimension of the viewport
+  const minZoomWidth = containerWidth / MAP_WIDTH;
+  const minZoomHeight = containerHeight / MAP_HEIGHT;
+  const minZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
+  
   // If only one POI is selected, center directly on it
   if (selectedPois.length === 1) {
     const poi = pois.find(p => p.id === selectedPois[0]);
@@ -2545,6 +2525,9 @@ function centerMapOnSelectedPois() {
         x: containerWidth / (2 * currentZoom) - (poi.x / 1.664) - offsetX,
         y: containerHeight / (2 * currentZoom) - (poi.y / 1.664) - offsetY - MAP_HEIGHT
       };
+      
+      // Apply boundary constraints to keep the map inside the viewport
+      applyMapBoundaryConstraints(containerWidth, containerHeight);
       
       updateMapTransform();
       showNotification("Centered map on selected POI");
@@ -2591,7 +2574,8 @@ function centerMapOnSelectedPois() {
     const zoomY = containerHeight / (adjustedHeight + paddingY * 2);
     
     // Use the smaller of the two zoom levels to ensure everything fits
-    const newZoom = Math.min(zoomX, zoomY, 2.0); // Cap at 2.0 to avoid extreme zoom
+    // But don't go below the minimum zoom level or above the maximum zoom level
+    const newZoom = Math.max(minZoom, Math.min(Math.min(zoomX, zoomY), 2.0));
     
     // Only change zoom if it's significantly different
     if (Math.abs(newZoom - currentZoom) > 0.1) {
@@ -2603,6 +2587,9 @@ function centerMapOnSelectedPois() {
       x: containerWidth / (2 * currentZoom) - centerX,
       y: containerHeight / (2 * currentZoom) - centerY
     };
+    
+    // Apply boundary constraints to keep the map inside the viewport
+    applyMapBoundaryConstraints(containerWidth, containerHeight);
     
     updateMapTransform();
     showNotification(`Centered map on ${selectedPois.length} selected POIs`);
@@ -2677,5 +2664,29 @@ function centerMapOnUnapprovedPois() {
     
     // Restore original selectedPois
     selectedPois = originalSelectedPois;
+  }
+}
+
+// Function to apply boundary constraints to the map position
+function applyMapBoundaryConstraints(containerWidth, containerHeight) {
+  // Ensure the map doesn't go beyond the viewport boundaries
+  if (MAP_WIDTH * currentZoom < containerWidth) {
+    // If the map is smaller than the container, center it horizontally
+    mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
+  } else {
+    // If the map is larger than the container, constrain it to the boundaries
+    const minX = containerWidth / currentZoom - MAP_WIDTH;
+    const maxX = 0;
+    mapPosition.x = Math.max(minX, Math.min(maxX, mapPosition.x));
+  }
+
+  if (MAP_HEIGHT * currentZoom < containerHeight) {
+    // If the map is smaller than the container, center it vertically
+    mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
+  } else {
+    // If the map is larger than the container, constrain it to the boundaries
+    const minY = containerHeight / currentZoom - MAP_HEIGHT;
+    const maxY = 0;
+    mapPosition.y = Math.max(minY, Math.min(maxY, mapPosition.y));
   }
 }
