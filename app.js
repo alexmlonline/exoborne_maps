@@ -17,6 +17,10 @@ const STORAGE_KEY = 'game_map_pois';
 const SESSION_KEY = 'game_map_session';
 const DEFAULT_ZOOM = 1;
 
+// Image preloading flags
+let heatmapImagePreloaded = false;
+let guideImagePreloaded = false;
+
 // State management
 let pois = [];
 let sessionId = '';
@@ -222,6 +226,9 @@ function initMap() {
   // Set up overlays with the same dimensions as the main map
   const heatmapOverlay = $('#heatmap-overlay');
   const guideOverlay = $('#guide-overlay');
+  
+  // Preload the heatmap and guide images in the background
+  preloadOverlayImages();
   
   heatmapOverlay.css({
     width: MAP_WIDTH + 'px',
@@ -2611,14 +2618,50 @@ $(document).on('keydown', function(e) {
 // Toggle heatmap visibility
 function toggleHeatmap() {
   isHeatmapVisible = !isHeatmapVisible;
-  $('#heatmap-overlay').toggle(isHeatmapVisible);
+  
+  // If the image is preloaded, toggle immediately
+  // Otherwise, show a loading indicator
+  if (heatmapImagePreloaded) {
+    $('#heatmap-overlay').toggle(isHeatmapVisible);
+  } else {
+    if (isHeatmapVisible) {
+      showNotification('Loading heatmap...');
+      const heatmapImage = new Image();
+      heatmapImage.onload = function() {
+        $('#heatmap-overlay').show();
+        heatmapImagePreloaded = true;
+      };
+      heatmapImage.src = 'maps/Maynard_Heatmap_Transparent.png';
+    } else {
+      $('#heatmap-overlay').hide();
+    }
+  }
+  
   $('#toggle-heatmap').toggleClass('active', isHeatmapVisible);
 }
 
 // Toggle guide visibility
 function toggleGuide() {
   isGuideVisible = !isGuideVisible;
-  $('#guide-overlay').toggle(isGuideVisible);
+  
+  // If the image is preloaded, toggle immediately
+  // Otherwise, show a loading indicator
+  if (guideImagePreloaded) {
+    $('#guide-overlay').toggle(isGuideVisible);
+  } else {
+    if (isGuideVisible) {
+      showNotification('Loading guide...');
+      const guideImage = new Image();
+      guideImage.onload = function() {
+        $('#guide-overlay').show();
+        guideImagePreloaded = true;
+      };
+      guideImage.src = 'maps/Maynard_Guide_Transparent.png';
+    } else {
+      $('#guide-overlay').hide();
+    }
+  }
+  
   $('#toggle-guide').toggleClass('active', isGuideVisible);
 }
 
@@ -2811,4 +2854,23 @@ function applyMapBoundaryConstraints(containerWidth, containerHeight) {
     const maxY = 0;
     mapPosition.y = Math.max(minY, Math.min(maxY, mapPosition.y));
   }
+}
+
+// Function to preload overlay images
+function preloadOverlayImages() {
+  // Preload heatmap image
+  const heatmapImage = new Image();
+  heatmapImage.onload = function() {
+    heatmapImagePreloaded = true;
+    console.log('Heatmap image preloaded');
+  };
+  heatmapImage.src = 'maps/Maynard_Heatmap_Transparent.png';
+  
+  // Preload guide image
+  const guideImage = new Image();
+  guideImage.onload = function() {
+    guideImagePreloaded = true;
+    console.log('Guide image preloaded');
+  };
+  guideImage.src = 'maps/Maynard_Guide_Transparent.png';
 }

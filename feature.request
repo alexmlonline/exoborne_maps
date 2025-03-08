@@ -1,9 +1,7 @@
 enabled hourly backups
 enable basic search agains description
 add new maps
-
-add sharing specific POIS (1 or many)
-
+when clicking clear on the POIs selected, select by default the group they belong to
 
 
 DONE
@@ -11,4 +9,7 @@ DONE
 add feature to share POIs via url
 add a new layer with recommended locations
 zoom should stop somewhere (at browser size)
+add sharing specific POIS (1 or many)
+corner refresh should center the map
+added maps caching
 
