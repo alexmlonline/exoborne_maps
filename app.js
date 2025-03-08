@@ -470,6 +470,12 @@ function dragMap(e) {
   applyMapBoundaryConstraints(containerWidth, containerHeight);
 
   updateMapTransform();
+  
+  // Track map dragging with throttling
+  trackMapInteraction('drag', {
+    deltaX: mouseX - dragStart.x,
+    deltaY: mouseY - dragStart.y
+  });
 }
 
 function stopDragging() {
@@ -513,6 +519,10 @@ function changeZoom(delta, cursorX, cursorY) {
   applyMapBoundaryConstraints(containerWidth, containerHeight);
 
   updateMapTransform();
+  trackEvent('ZoomMap', {
+    zoomLevel: currentZoom,
+    zoomDelta: delta
+  });
   
   // Update zoom level indicator if it exists
   updateZoomIndicator();
@@ -612,29 +622,108 @@ function savePoi() {
   const manualX = $('#poi-x').val().trim();
   const manualY = $('#poi-y').val().trim();
   
-  // Check if coordinates were manually entered
-  if (manualX && manualY) {
-    // Create POI with manually entered coordinates
+  try {
+    
+    // Check if coordinates were manually entered
+    if (manualX && manualY) {
+      // Create POI with manually entered coordinates
+      const poi = {
+        id: 'poi-' + Date.now(),
+        name: poiType.charAt(0).toUpperCase() + poiType.slice(1),
+        type: poiType,
+        description: $('#poi-desc').val().trim(),
+        x: manualX.startsWith('+') || manualX.startsWith('-') ? manualX : '+' + manualX,
+        y: manualY.startsWith('+') || manualY.startsWith('-') ? manualY : '+' + manualY,
+        visible: true,
+        approved: false,
+        dateAdded: new Date().toISOString(),
+        sessionId: sessionId // Add session ID to track who created this POI
+      };
+      
+      pois.push(poi);
+      renderPois();
+      savePoisToStorage();
+      
+      // Send unapproved POI to server
+      saveUnapprovedPoi(poi);
+      
+      // Check if we have multiple POIs selected in the URL
+      const manualParams = getUrlParameters();
+      if (manualParams.select && manualParams.select.split(',').length > 1) {
+        // Add the new POI to the selected POIs list
+        selectedPois.push(poi.id);
+        selectedPoi = poi.id; // Make the new POI the primary selection
+        
+        // Update the URL with the new selection
+        updateUrlWithSelection();
+        
+        // Ensure the new POI is visible
+        poi.visible = true;
+        
+        // Update the visual state of the POI marker
+        const marker = $(`.poi-marker[data-id="${poi.id}"]`);
+        marker.addClass('selected');
+        
+        // Apply styling to the marker
+        const poiColor = getPoiColor(poi.type);
+        const colorValues = hexToRgb(poiColor);
+        if (colorValues) {
+          marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
+          marker.css('--poi-stroke-color', poiColor);
+          marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
+        }
+        
+        // Update selection indicator
+        updateSelectionIndicator();
+        
+        showNotification('POI added and selected (awaiting approval)');
+      } else {
+        showNotification('POI added successfully (awaiting approval)');
+      }
+      
+      // Reset form and exit add mode
+      $('#poi-form').hide();
+      $('#poi-desc').val('');
+      $('#poi-x').val('');
+      $('#poi-y').val('');
+      tempPoi = null;
+      addMode = false;
+      $('#add-mode-btn').removeClass('active');
+      $('#game-map').css('cursor', 'default');
+      
+      // Hide the context menu
+      $('#context-menu').hide();
+      
+      return;
+    }
+    
+    // If no manual coordinates, use the tempPoi from map click
+    if (!tempPoi) return;
+
+    // Calculate adjusted coordinates for saving
+    const adjustedX = (tempPoi.x - offsetX) * 1.664;
+    const adjustedY = (tempPoi.y - offsetY) * 1.664;
+
     const poi = {
       id: 'poi-' + Date.now(),
-      name: poiType.charAt(0).toUpperCase() + poiType.slice(1),
+      name: tempPoi.name,
       type: poiType,
       description: $('#poi-desc').val().trim(),
-      x: manualX.startsWith('+') || manualX.startsWith('-') ? manualX : '+' + manualX,
-      y: manualY.startsWith('+') || manualY.startsWith('-') ? manualY : '+' + manualY,
+      x: formatCoordinateForStorage(adjustedX),
+      y: formatCoordinateForStorage(adjustedY),
       visible: true,
-      approved: false,
+      approved: false, // Mark new POIs as unapproved
       dateAdded: new Date().toISOString(),
       sessionId: sessionId // Add session ID to track who created this POI
     };
-    
+
     pois.push(poi);
     renderPois();
     savePoisToStorage();
     
     // Send unapproved POI to server
     saveUnapprovedPoi(poi);
-    
+
     // Check if we have multiple POIs selected in the URL
     const manualParams = getUrlParameters();
     if (manualParams.select && manualParams.select.split(',').length > 1) {
@@ -668,93 +757,27 @@ function savePoi() {
     } else {
       showNotification('POI added successfully (awaiting approval)');
     }
-    
-    // Reset form and exit add mode
+
+    // Reset form and add mode
     $('#poi-form').hide();
-    $('#poi-desc').val('');
-    $('#poi-x').val('');
-    $('#poi-y').val('');
     tempPoi = null;
     addMode = false;
     $('#add-mode-btn').removeClass('active');
     $('#game-map').css('cursor', 'default');
-    
+
     // Hide the context menu
     $('#context-menu').hide();
-    
-    return;
+    trackEvent('SavePOI', {
+      poiType: poiType,
+      x: manualX,
+      y: manualY,
+      coordinates: `${x},${y}`
+  });
+// ... rest of the function ...
+  } catch (error) {
+    trackError(error, { action: 'SavePOI' });
+    throw error;
   }
-  
-  // If no manual coordinates, use the tempPoi from map click
-  if (!tempPoi) return;
-
-  // Calculate adjusted coordinates for saving
-  const adjustedX = (tempPoi.x - offsetX) * 1.664;
-  const adjustedY = (tempPoi.y - offsetY) * 1.664;
-
-  const poi = {
-    id: 'poi-' + Date.now(),
-    name: tempPoi.name,
-    type: poiType,
-    description: $('#poi-desc').val().trim(),
-    x: formatCoordinateForStorage(adjustedX),
-    y: formatCoordinateForStorage(adjustedY),
-    visible: true,
-    approved: false, // Mark new POIs as unapproved
-    dateAdded: new Date().toISOString(),
-    sessionId: sessionId // Add session ID to track who created this POI
-  };
-
-  pois.push(poi);
-  renderPois();
-  savePoisToStorage();
-  
-  // Send unapproved POI to server
-  saveUnapprovedPoi(poi);
-
-  // Check if we have multiple POIs selected in the URL
-  const manualParams = getUrlParameters();
-  if (manualParams.select && manualParams.select.split(',').length > 1) {
-    // Add the new POI to the selected POIs list
-    selectedPois.push(poi.id);
-    selectedPoi = poi.id; // Make the new POI the primary selection
-    
-    // Update the URL with the new selection
-    updateUrlWithSelection();
-    
-    // Ensure the new POI is visible
-    poi.visible = true;
-    
-    // Update the visual state of the POI marker
-    const marker = $(`.poi-marker[data-id="${poi.id}"]`);
-    marker.addClass('selected');
-    
-    // Apply styling to the marker
-    const poiColor = getPoiColor(poi.type);
-    const colorValues = hexToRgb(poiColor);
-    if (colorValues) {
-      marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
-      marker.css('--poi-stroke-color', poiColor);
-      marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
-    }
-    
-    // Update selection indicator
-    updateSelectionIndicator();
-    
-    showNotification('POI added and selected (awaiting approval)');
-  } else {
-    showNotification('POI added successfully (awaiting approval)');
-  }
-
-  // Reset form and add mode
-  $('#poi-form').hide();
-  tempPoi = null;
-  addMode = false;
-  $('#add-mode-btn').removeClass('active');
-  $('#game-map').css('cursor', 'default');
-
-  // Hide the context menu
-  $('#context-menu').hide();
 }
 
 function cancelAddPoi() {
@@ -896,165 +919,184 @@ function hexToRgb(hex) {
 }
 
 function deletePoi(poiId) {
-  // Debug log to help identify issues
-  console.log('Deleting POI:', poiId);
-  console.log('Current session ID:', sessionId);
-  
-  const poi = pois.find(p => p.id === poiId);
-  if (!poi) {
-    console.error('POI not found:', poiId);
-    return;
-  }
-  
-  console.log('POI session ID:', poi.sessionId);
-  console.log('Is owned by current session:', poi.sessionId === sessionId);
-  console.log('Has edit permission:', hasEditPermission());
-  
-  // Check if this is an approved POI
-  if (poi.approved === true) {
-    showNotification('Cannot delete approved POIs', true);
-    return;
-  }
-  
-  // Users with edit permission can delete any unapproved POI
-  // Users without edit permission can only delete POIs they created
-  if (!hasEditPermission() && poi.sessionId && poi.sessionId !== sessionId) {
-    showNotification('You can only delete POIs that you created in this session', true);
-    return;
-  }
-  
-  // Confirm deletion
-  if (!confirm(`Are you sure you want to delete this POI?\n\nType: ${poi.type}\nCoordinates: X: ${poi.x}, Y: ${poi.y}`)) {
-    return;
-  }
-  
-  // Remove from local array
-  pois = pois.filter(p => p.id !== poiId);
+  try {
+    // Debug log to help identify issues
+    console.log('Deleting POI:', poiId);
+    console.log('Current session ID:', sessionId);
+    
+    const poi = pois.find(p => p.id === poiId);
+    if (!poi) {
+      console.error('POI not found:', poiId);
+      return;
+    }
+    
+    console.log('POI session ID:', poi.sessionId);
+    console.log('Is owned by current session:', poi.sessionId === sessionId);
+    console.log('Has edit permission:', hasEditPermission());
+    
+    // Check if this is an approved POI
+    if (poi.approved === true) {
+      showNotification('Cannot delete approved POIs', true);
+      return;
+    }
+    
+    // Users with edit permission can delete any unapproved POI
+    // Users without edit permission can only delete POIs they created
+    if (!hasEditPermission() && poi.sessionId && poi.sessionId !== sessionId) {
+      showNotification('You can only delete POIs that you created in this session', true);
+      return;
+    }
+    
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete this POI?\n\nType: ${poi.type}\nCoordinates: X: ${poi.x}, Y: ${poi.y}`)) {
+      return;
+    }
+    
+    // Remove from local array
+    pois = pois.filter(p => p.id !== poiId);
 
-  // Send delete request to server for unapproved POIs
-  if (poi.approved === false) {
-    // Log the canEdit value for debugging
-    const canEditValue = hasEditPermission() ? '1' : '0';
-    console.log('Sending delete request with canEdit:', canEditValue);
-    
-    // Include canEdit in both the URL and the request body
-    const url = `${API_ENDPOINT}/delete-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
-    console.log('Request URL:', url);
-    
-    fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        id: poiId,
-        sessionId: sessionId,
-        canEdit: canEditValue
-      }),
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        showNotification('POI deleted successfully');
-        renderPois();
-        savePoisToStorage(); // Save changes to localStorage
-      } else {
-        showNotification('Error deleting POI: ' + data.error, true);
-      }
-    })
-    .catch(error => {
-      console.error('Error deleting POI:', error);
-      showNotification('Error deleting POI', true);
+    // Send delete request to server for unapproved POIs
+    if (poi.approved === false) {
+      // Log the canEdit value for debugging
+      const canEditValue = hasEditPermission() ? '1' : '0';
+      console.log('Sending delete request with canEdit:', canEditValue);
+      
+      // Include canEdit in both the URL and the request body
+      const url = `${API_ENDPOINT}/delete-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
+      console.log('Request URL:', url);
+      
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          id: poiId,
+          sessionId: sessionId,
+          canEdit: canEditValue
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('POI deleted successfully');
+          renderPois();
+          savePoisToStorage(); // Save changes to localStorage
+        } else {
+          showNotification('Error deleting POI: ' + data.error, true);
+        }
+      })
+      .catch(error => {
+        console.error('Error deleting POI:', error);
+        showNotification('Error deleting POI', true);
+      });
+    } else {
+      renderPois();
+      savePoisToStorage(); // Save changes to localStorage
+    }
+    trackEvent('DeletePOI', {
+      poiId: poiId
     });
-  } else {
-    renderPois();
-    savePoisToStorage(); // Save changes to localStorage
+  // ... rest of the function ...
+  } catch (error) {
+    trackError(error, { action: 'DeletePOI', poiId });
+    throw error;
   }
 }
 
 // Function to approve a POI
 function approvePoi(poiId) {
-  const poi = pois.find(p => p.id === poiId);
-  if (!poi) return;
+  try {
+    const poi = pois.find(p => p.id === poiId);
+    if (!poi) return;
 
-  // Only users with canEdit=1 can approve POIs
-  if (!hasEditPermission()) {
-    showNotification('You do not have permission to approve POIs', true);
-    return;
-  }
-
-  // Check if this POI is already approved
-  if (poi.approved === true) {
-    showNotification('This POI is already approved', true);
-    return;
-  }
-
-  // Confirm approval
-  if (!confirm(`Are you sure you want to approve this POI?\n\nType: ${poi.type}\nCoordinates: X: ${poi.x}, Y: ${poi.y}`)) {
-    return;
-  }
-
-  // Create a copy of the POI with approved status
-  const approvedPoi = { 
-    ...poi, 
-    approved: true,
-    canEdit: hasEditPermission() ? '1' : '0'
-  };
-
-  // Show loading notification
-  showNotification('Approving POI...');
-
-  // Log the canEdit value for debugging
-  const canEditValue = hasEditPermission() ? '1' : '0';
-  console.log('Sending approve request with canEdit:', canEditValue);
-  
-  // Include canEdit in both the URL and the request body
-  const url = `${API_ENDPOINT}/approve-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
-  console.log('Request URL:', url);
-
-  // Send approval request to server
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(approvedPoi),
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    // Only users with canEdit=1 can approve POIs
+    if (!hasEditPermission()) {
+      showNotification('You do not have permission to approve POIs', true);
+      return;
     }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      // Update local POI
+
+    // Check if this POI is already approved
+    if (poi.approved === true) {
+      showNotification('This POI is already approved', true);
+      return;
+    }
+
+    // Confirm approval
+    if (!confirm(`Are you sure you want to approve this POI?\n\nType: ${poi.type}\nCoordinates: X: ${poi.x}, Y: ${poi.y}`)) {
+      return;
+    }
+
+    // Create a copy of the POI with approved status
+    const approvedPoi = { 
+      ...poi, 
+      approved: true,
+      canEdit: hasEditPermission() ? '1' : '0'
+    };
+
+    // Show loading notification
+    showNotification('Approving POI...');
+
+    // Log the canEdit value for debugging
+    const canEditValue = hasEditPermission() ? '1' : '0';
+    console.log('Sending approve request with canEdit:', canEditValue);
+    
+    // Include canEdit in both the URL and the request body
+    const url = `${API_ENDPOINT}/approve-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
+    console.log('Request URL:', url);
+
+    // Send approval request to server
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(approvedPoi),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Update local POI
+        const index = pois.findIndex(p => p.id === poiId);
+        if (index !== -1) {
+          pois[index] = { ...pois[index], approved: true };
+        }
+        
+        showNotification('POI approved successfully');
+        
+        // Refresh POIs from server to ensure we have the latest data
+        loadPoisFromFile();
+      } else {
+        showNotification('Error approving POI: ' + (data.error || 'Unknown error'), true);
+      }
+    })
+    .catch(error => {
+      console.error('Error approving POI:', error);
+      showNotification('Error approving POI: ' + error.message, true);
+      
+      // Fallback: Update locally if server request fails
       const index = pois.findIndex(p => p.id === poiId);
       if (index !== -1) {
         pois[index] = { ...pois[index], approved: true };
+        showNotification('POI approved locally (server update failed)');
+        renderPois();
       }
-      
-      showNotification('POI approved successfully');
-      
-      // Refresh POIs from server to ensure we have the latest data
-      loadPoisFromFile();
-    } else {
-      showNotification('Error approving POI: ' + (data.error || 'Unknown error'), true);
-    }
-  })
-  .catch(error => {
-    console.error('Error approving POI:', error);
-    showNotification('Error approving POI: ' + error.message, true);
-    
-    // Fallback: Update locally if server request fails
-    const index = pois.findIndex(p => p.id === poiId);
-    if (index !== -1) {
-      pois[index] = { ...pois[index], approved: true };
-      showNotification('POI approved locally (server update failed)');
-      renderPois();
-    }
-  });
+    });
+    trackEvent('ApprovePOI', {
+      poiId: poiId
+    });
+  // ... rest of the function ...
+  } catch (error) {
+    trackError(error, { action: 'ApprovePOI', poiId });
+    throw error;
+  }
 }
+
 
 // Context menu functions and saving/editing POIs
 function showContextMenu(screenX, screenY, mapX, mapY) {
@@ -1680,6 +1722,11 @@ function toggleGroupVisibility(type, visible, updateUrl = true) {
   if (updateUrl) {
     updateUrlWithGroups();
   }
+
+  trackEvent('TogglePoiGroup', {
+    groupType: type,
+    visible: visible
+  });
 }
 
 // Function to parse URL parameters
@@ -2431,6 +2478,11 @@ function handleMapClick(e) {
       showContextMenu(e.pageX, e.pageY, clickX, clickY);
     }
   }
+  
+  // Track map clicks
+  trackMapInteraction('click', {
+    coordinates: `${clickX},${clickY}`
+  });
 }
 
 // Function to handle clicks when in add mode
@@ -2670,6 +2722,9 @@ function toggleHeatmap() {
   }
   
   $('#toggle-heatmap').toggleClass('active', isHeatmapVisible);
+  trackEvent('ToggleHeatmap', {
+    visible: isHeatmapVisible
+  });
 }
 
 // Toggle guide visibility
@@ -2695,7 +2750,11 @@ function toggleGuide() {
   }
   
   $('#toggle-guide').toggleClass('active', isGuideVisible);
+  trackEvent('ToggleGuide', {
+    visible: isGuideVisible
+  });
 }
+
 
 // Function to center the map on selected POIs
 function centerMapOnSelectedPois() {
@@ -2906,3 +2965,88 @@ function preloadOverlayImages() {
   };
   guideImage.src = 'maps/Maynard_Guide_Transparent.png';
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Add this near the top of your file, after other initializations
+let appInsights;
+if (window.appInsights) {
+    appInsights = window.appInsights;
+    // Track initial page view with map details
+    appInsights.trackPageView({
+        name: 'ExoborneMaps',
+        properties: {
+            mapType: 'maynard'
+        }
+    });
+}
+
+// Add telemetry tracking function
+function trackEvent(eventName, properties = {}) {
+    if (appInsights) {
+        // Add common properties to all events
+        const commonProps = {
+            sessionId: window.sessionId || 'unknown',
+            mapType: document.getElementById('map-select-overlay').value,
+            screenResolution: `${window.innerWidth}x${window.innerHeight}`
+        };
+        appInsights.trackEvent({ 
+            name: eventName, 
+            properties: { ...commonProps, ...properties }
+        });
+    }
+}
+
+// Add error tracking function
+function trackError(error, properties = {}) {
+    if (appInsights) {
+        appInsights.trackException({
+            error: error,
+            properties: {
+                sessionId: window.sessionId || 'unknown',
+                ...properties
+            }
+        });
+    }
+}
+
+// Track map interactions with throttling
+let lastMapInteraction = Date.now();
+function trackMapInteraction(interactionType, properties = {}) {
+    const now = Date.now();
+    if (now - lastMapInteraction >= 1000) { // Throttle to once per second
+        trackEvent('MapInteraction', {
+            type: interactionType,
+            ...properties
+        });
+        lastMapInteraction = now;
+    }
+}
+
+// Track errors globally
+window.onerror = function(msg, url, line, col, error) {
+    trackError(error || new Error(msg), {
+        url: url,
+        line: line,
+        col: col
+    });
+    return false;
+};
+
+// Track unhandled promise rejections
+window.addEventListener('unhandledrejection', function(event) {
+    trackError(event.reason, {
+        type: 'UnhandledPromiseRejection'
+    });
+});
