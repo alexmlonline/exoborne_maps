@@ -454,7 +454,7 @@ function dragMap(e) {
 
 function stopDragging() {
   isDragging = false;
-  $('#game-map').css('cursor', 'move');
+  $('#game-map').css('cursor', 'default');
 }
 
 function changeZoom(delta, cursorX, cursorY) {
@@ -571,7 +571,7 @@ function toggleAddMode() {
     }
   } else {
     console.log("toggleAddMode: hiding form");
-    $('#game-map').css('cursor', 'move');
+    $('#game-map').css('cursor', 'default');
     $('#poi-form').hide();
     tempPoi = null;
   }
@@ -655,7 +655,7 @@ function savePoi() {
     tempPoi = null;
     addMode = false;
     $('#add-mode-btn').removeClass('active');
-    $('#game-map').css('cursor', 'move');
+    $('#game-map').css('cursor', 'default');
     
     // Hide the context menu
     $('#context-menu').hide();
@@ -729,7 +729,7 @@ function savePoi() {
   tempPoi = null;
   addMode = false;
   $('#add-mode-btn').removeClass('active');
-  $('#game-map').css('cursor', 'move');
+  $('#game-map').css('cursor', 'default');
 
   // Hide the context menu
   $('#context-menu').hide();

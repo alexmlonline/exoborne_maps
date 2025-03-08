@@ -163,7 +163,7 @@
     background-repeat: no-repeat;
     /* Prevent repetition */
     transform-origin: 0 0;
-    cursor: move;
+    cursor: default;
     z-index: 2;
   }
   
