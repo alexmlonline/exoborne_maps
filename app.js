@@ -96,6 +96,7 @@ function updateContextMenuHtml() {
           <option value="collectibles">Collectibles</option>
           <option value="loot">Loot</option>
           <option value="container">Locked Containers</option>
+          <option value="respawn">Respawn</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -1399,15 +1400,27 @@ function renderPois() {
       const isCurrentSession = poi.sessionId === sessionId;
       
       // Create POI marker with approval status indicator
+      let svgPath = '';
+      if (poi.type === 'respawn') {
+        // Star icon for Respawn POIs
+        svgPath = `<path fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5"
+                      d="M12,2.3l2.9,6.9l7.1,0.6l-5.3,4.9l1.6,6.8L12,17.8l-6.3,3.7l1.6-6.8L2,9.8l7.1-0.6L12,2.3z"/>`;
+      } else {
+        // Default location marker for all other POIs
+        svgPath = `<path fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5"
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>`;
+      }
+      
       const marker = $(`
           <div class="poi-marker ${poi.approved ? 'approved' : 'unapproved'} ${poi.id === selectedPoi ? 'selected' : ''} ${isCurrentSession ? 'current-session' : ''}" 
                data-id="${poi.id}" 
                style="left: ${realX}px; top: ${realY}px;">
               <svg viewBox="0 0 24 24">
-                  <path fill="transparent" 
-                        stroke="${poiColor}" 
-                        stroke-width="1.5"
-                        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  ${svgPath}
                   ${isCurrentSession ? '<circle cx="6" cy="6" r="3" fill="#4CAF50" stroke="white" stroke-width="0.5" />' : ''}
               </svg>
           </div>
@@ -1570,6 +1583,7 @@ function getPoiColor(type) {
     case 'collectibles': return '#ff69b4'; // Hot pink (more vibrant than light pink)
     case 'loot': return '#9932cc'; // Dark orchid (more vibrant purple)
     case 'container': return '#9b8840'; // Gold-brown for Locked Containers
+    case 'respawn': return '#ff0000'; // Bright red for Respawn points
     default:
       console.log('Unknown POI type:', type);
       return '#ffffff';
@@ -2440,24 +2454,6 @@ function handleAddModeClick(e) {
 
 // Function to update zoom level indicator
 function updateZoomIndicator() {
-  // Create build info indicator if it doesn't exist
-  if ($('#build-info').length === 0) {
-    const buildInfo = $('<div id="build-info">Work in progress, CPT3 data</div>');
-    buildInfo.css({
-      'position': 'absolute',
-      'bottom': '40px',
-      'left': '10px',
-      'background-color': 'rgba(0, 0, 0, 0.7)',
-      'color': '#ffd700', // Gold color for emphasis
-      'padding': '5px 10px',
-      'border-radius': '4px',
-      'z-index': '20',
-      'font-size': '14px',
-      'font-weight': 'bold'
-    });
-    $('#map-container').append(buildInfo);
-  }
-
   // Create zoom indicator if it doesn't exist
   if ($('#zoom-level').length === 0) {
     const zoomIndicator = $('<div id="zoom-level"></div>');

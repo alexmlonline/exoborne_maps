@@ -615,6 +615,11 @@
     color: #9c27b0; /* Purple color for Loot */
   }
   
+  #context-poi-type option[value="respawn"] {
+    background-color: #272727;
+    color: #ff0000; /* Red color for Respawn */
+  }
+  
   #context-delete-btn {
     background-color: #f44336;
   }
@@ -706,6 +711,11 @@
   #poi-type option[value="loot"] {
     background-color: #272727;
     color: #9c27b0; /* Purple for Loot */
+  }
+  
+  #poi-type option[value="respawn"] {
+    background-color: #272727;
+    color: #ff0000; /* Red color for Respawn */
   }
   
   #poi-type option[value="container"] {
