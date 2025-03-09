@@ -1449,6 +1449,21 @@ function renderPois() {
                       stroke="${poiColor}" 
                       stroke-width="1.5"
                       d="M12,2.3l2.9,6.9l7.1,0.6l-5.3,4.9l1.6,6.8L12,17.8l-6.3,3.7l1.6-6.8L2,9.8l7.1-0.6L12,2.3z"/>`;
+      } else if (poi.type === 'fragment') {
+        // Extract first two digits from notes if they exist
+        const numberMatch = poi.description ? poi.description.match(/\d{1,3}/) : null;
+        const number = numberMatch ? numberMatch[0].padStart(2, '0') : '';
+        
+        svgPath = `<path fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5"
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                   ${number ? `<text x="12" y="11" 
+                      fill="white" 
+                      text-anchor="middle" 
+                      font-size="7px" 
+                      font-weight="bold" 
+                      font-family="Arial">${number}</text>` : ''}`;
       } else {
         // Default location marker for all other POIs
         svgPath = `<path fill="transparent" 
