@@ -1396,7 +1396,7 @@ function saveEditedPoi() {
     showNotification('POI updated successfully');
   }
   
-  contextMenu.hide();
+  $('#context-menu').hide();
   selectPoi(poiId);
 }
 
