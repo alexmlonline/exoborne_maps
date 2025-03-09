@@ -9,7 +9,7 @@ const isLocalhost = window.location.hostname === 'localhost' ||
                     window.location.hostname.includes('192.168.');
 
 // Use localhost URL for local development, just '/api' for production
-const API_ENDPOINT = isLocalhost ? 'http://localhost:8080/api' : '/api';
+const API_ENDPOINT = isLocalhost ? 'http://localhost:8080/api' : window.location.origin + '/api';
 
 const MAP_WIDTH = 2000;
 const MAP_HEIGHT = 1430;
@@ -250,6 +250,9 @@ function initMap() {
     opacity: 0.9,
     transform: `scale(${currentZoom}) translate(${mapPosition.x}px, ${mapPosition.y}px)`
   });
+
+  // Check URL parameters for initial state
+  checkUrlParameters();
 
   // Center the map initially
   resetMapView();
@@ -2765,6 +2768,16 @@ function toggleGuide() {
   }
   
   $('#toggle-guide').toggleClass('active', isGuideVisible);
+
+  // Update URL with guide parameter
+  const url = new URL(window.location);
+  if (isGuideVisible) {
+    url.searchParams.set('guide', '1');
+  } else {
+    url.searchParams.delete('guide');
+  }
+  window.history.replaceState({}, '', url);
+
   trackEvent('ToggleGuide', {
     visible: isGuideVisible
   });
@@ -3065,3 +3078,22 @@ window.addEventListener('unhandledrejection', function(event) {
         type: 'UnhandledPromiseRejection'
     });
 });
+
+// Function to check URL parameters for initial state
+function checkUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const guideParam = urlParams.get('guide');
+    
+    // Check for guide parameter
+    if (guideParam === '1') {
+        // Show guide overlay
+        isGuideVisible = true;
+        $('#guide-overlay').show();
+        $('#toggle-guide').addClass('active');
+    } else if (guideParam === '0') {
+        // Show heatmap instead
+        isHeatmapVisible = true;
+        $('#heatmap-overlay').show();
+        $('#toggle-heatmap').addClass('active');
+    }
+}
