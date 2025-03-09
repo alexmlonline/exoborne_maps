@@ -1346,7 +1346,7 @@ function saveEditedPoi() {
   poi.lastEdited = new Date().toISOString(); // Add last edited timestamp
 
   // If this is an unapproved POI, send the updated version to the server
-  if (poi.approved === false) {
+  if (poi.approved === false || isAdmin) {
     // Show loading notification
     showNotification('Saving changes...');
     

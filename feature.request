@@ -1,11 +1,10 @@
 TODO
 =============
 bodkin distilleries (a quest)
-enabled hourly backups
 enable basic search agains description
 add new maps
-when clicking clear on the POIs selected, select by default the group they belong to
-render charges and tier inside pin
+fix zooming to map size when selecting groups
+fix that approved POI doesn't save the notes (at least doesn't remove them)
 
 
 DONE
@@ -17,5 +16,6 @@ add sharing specific POIS (1 or many)
 corner refresh should center the map
 added maps caching
 fix an exception that is shown when I save comments for approved POI as an admin
-
+render charges and tier inside pin
+when clicking on POIs selected, select by default the group they belong to
 
