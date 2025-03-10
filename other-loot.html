@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exoborne - Other Loot</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .loot-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    
+    .loot-item {
+      background-color: #272727;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .loot-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+    
+    .loot-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background-color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .loot-image img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    
+    .loot-image-placeholder {
+      width: 80px;
+      height: 80px;
+      background-color: #333;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 24px;
+    }
+    
+    .loot-details {
+      padding: 15px;
+    }
+    
+    .loot-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    
+    .loot-description {
+      color: #ccc;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .loot-rarity {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    
+    .rarity-common {
+      background-color: #3a3a3a;
+      color: #fff;
+    }
+    
+    .rarity-uncommon {
+      background-color: #2e7d32;
+      color: #fff;
+    }
+    
+    .rarity-rare {
+      background-color: #1565c0;
+      color: #fff;
+    }
+    
+    .rarity-epic {
+      background-color: #7b1fa2;
+      color: #fff;
+    }
+    
+    .rarity-legendary {
+      background-color: #ff6f00;
+      color: #fff;
+    }
+    
+    #other-loot-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    
+    .modal-content {
+      background-color: #1a1a1a;
+      margin: 30px auto;
+      width: 90%;
+      max-width: 1200px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      position: relative;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-title {
+      font-size: 24px;
+      color: #fff;
+      margin: 0;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 24px;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    
+    .modal-close:hover {
+      color: #fff;
+    }
+    
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #333;
+      text-align: right;
+    }
+    
+    .category-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .category-btn {
+      background-color: #333;
+      border: none;
+      color: #fff;
+      padding: 8px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .category-btn:hover {
+      background-color: #444;
+    }
+    
+    .category-btn.active {
+      background-color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <div id="other-loot-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Other Loot Items</h2>
+        <button class="modal-close" id="close-loot-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="category-filter">
+          <button class="category-btn active" data-category="all">All</button>
+          <button class="category-btn" data-category="resources">Resources</button>
+          <button class="category-btn" data-category="weapons">Weapons</button>
+          <button class="category-btn" data-category="armor">Armor</button>
+          <button class="category-btn" data-category="consumables">Consumables</button>
+          <button class="category-btn" data-category="tools">Tools</button>
+        </div>
+        
+        <div class="loot-container">
+          <!-- Resources -->
+          <div class="loot-item" data-category="resources">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🔋</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Power Cell</div>
+              <div class="loot-description">A high-capacity energy cell used to power various electronic devices and machinery in Exoborne.</div>
+              <span class="loot-rarity rarity-uncommon">Uncommon</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="resources">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🧪</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Synthetic Polymer</div>
+              <div class="loot-description">A versatile material used in crafting and repairs. Found in various containers throughout the world.</div>
+              <span class="loot-rarity rarity-common">Common</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="resources">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">⚙️</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Precision Gears</div>
+              <div class="loot-description">High-quality mechanical components essential for crafting advanced machinery and weapons.</div>
+              <span class="loot-rarity rarity-rare">Rare</span>
+            </div>
+          </div>
+          
+          <!-- Weapons -->
+          <div class="loot-item" data-category="weapons">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🔫</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Scavenger's Rifle</div>
+              <div class="loot-description">A makeshift rifle assembled from salvaged parts. Despite its appearance, it's surprisingly reliable.</div>
+              <span class="loot-rarity rarity-uncommon">Uncommon</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="weapons">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🗡️</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Vibro-Blade</div>
+              <div class="loot-description">A high-frequency cutting tool repurposed as a deadly melee weapon. Effective against both organic and synthetic targets.</div>
+              <span class="loot-rarity rarity-rare">Rare</span>
+            </div>
+          </div>
+          
+          <!-- Armor -->
+          <div class="loot-item" data-category="armor">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🛡️</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Reinforced Vest</div>
+              <div class="loot-description">A basic protective vest that offers moderate protection against physical damage.</div>
+              <span class="loot-rarity rarity-common">Common</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="armor">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🪖</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Tactical Helmet</div>
+              <div class="loot-description">A military-grade helmet with integrated communications and enhanced protection.</div>
+              <span class="loot-rarity rarity-epic">Epic</span>
+            </div>
+          </div>
+          
+          <!-- Consumables -->
+          <div class="loot-item" data-category="consumables">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">💉</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Med-Injector</div>
+              <div class="loot-description">A single-use medical device that rapidly heals wounds and reduces pain.</div>
+              <span class="loot-rarity rarity-uncommon">Uncommon</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="consumables">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🍖</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Preserved Rations</div>
+              <div class="loot-description">Long-lasting food supplies that provide essential nutrients. Not tasty, but effective.</div>
+              <span class="loot-rarity rarity-common">Common</span>
+            </div>
+          </div>
+          
+          <!-- Tools -->
+          <div class="loot-item" data-category="tools">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🔧</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Multi-Tool</div>
+              <div class="loot-description">A versatile tool that combines various functions needed for survival and crafting.</div>
+              <span class="loot-rarity rarity-rare">Rare</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="tools">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">📡</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Signal Scanner</div>
+              <div class="loot-description">A device that detects and analyzes various signals in the environment, useful for locating resources and avoiding dangers.</div>
+              <span class="loot-rarity rarity-epic">Epic</span>
+            </div>
+          </div>
+          
+          <div class="loot-item" data-category="tools">
+            <div class="loot-image">
+              <div class="loot-image-placeholder">🔦</div>
+            </div>
+            <div class="loot-details">
+              <div class="loot-name">Advanced Flashlight</div>
+              <div class="loot-description">A durable, high-intensity light source with multiple modes and extended battery life.</div>
+              <span class="loot-rarity rarity-uncommon">Uncommon</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <p style="color: #aaa; text-align: left; margin: 0;">
+          Note: These items spawn randomly throughout the world and cannot be marked as fixed POIs on the map.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Category filtering
+      const categoryButtons = document.querySelectorAll('.category-btn');
+      const lootItems = document.querySelectorAll('.loot-item');
+      
+      categoryButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Remove active class from all buttons
+          categoryButtons.forEach(btn => btn.classList.remove('active'));
+          
+          // Add active class to clicked button
+          this.classList.add('active');
+          
+          const category = this.getAttribute('data-category');
+          
+          // Show/hide items based on category
+          lootItems.forEach(item => {
+            if (category === 'all' || item.getAttribute('data-category') === category) {
+              item.style.display = 'block';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+      });
+      
+      // Close modal when clicking the close button
+      document.getElementById('close-loot-modal').addEventListener('click', function() {
+        document.getElementById('other-loot-modal').style.display = 'none';
+      });
+      
+      // Close modal when clicking outside the content
+      document.getElementById('other-loot-modal').addEventListener('click', function(event) {
+        if (event.target === this) {
+          this.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

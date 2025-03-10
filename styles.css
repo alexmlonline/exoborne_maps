@@ -970,34 +970,248 @@
   }
 
   #welcome-placeholder .welcome-icon svg {
-    width: 50px;
-    height: 50px;
-    fill: #ffd700;
+    width: 100%;
+    height: 100%;
+    fill: #4CAF50;
   }
 
   #welcome-placeholder .feature-list {
     text-align: left;
-    margin: 20px 0;
-    padding-left: 0px;
-    list-style-type: none;
+    margin: 15px 0;
+    padding-left: 20px;
   }
 
   #welcome-placeholder .feature-list li {
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     position: relative;
-    padding-left: 35px;
-    list-style-type: none;
-    align-items: flex-start;
+    padding-left: 5px;
   }
 
   #welcome-placeholder .feature-list li:before {
     content: "•";
-    color: #ffd700;
-    font-size: 22px;
     position: absolute;
-    left: 10px;
-    top: -4px;
-    line-height: 1;
-    display: block;
+    left: -15px;
+    color: #4CAF50;
+  }
+
+  /* Other Loot Modal Styles */
+  #other-loot-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    overflow-y: auto;
+  }
+
+  .modal-content {
+    background-color: #1a1a1a;
+    margin: 30px auto;
+    width: 90%;
+    max-width: 1200px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    position: relative;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-size: 24px;
+    color: #ffd700;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  .modal-close:hover {
+    color: #fff;
+  }
+
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #333;
+    text-align: right;
+  }
+
+  .loot-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+    padding: 10px 0;
+  }
+
+  .loot-item {
+    background-color: #272727;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .loot-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .loot-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background-color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loot-image img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .loot-image-placeholder {
+    width: 90px;
+    height: 90px;
+    background-color: #333;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    font-size: 28px;
+  }
+
+  .loot-details {
+    padding: 15px;
+  }
+
+  .loot-name {
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+
+  .loot-description {
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .loot-rarity {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+
+  .rarity-common {
+    background-color: #3a3a3a;
+    color: #fff;
+  }
+
+  .rarity-uncommon {
+    background-color: #2e7d32;
+    color: #fff;
+  }
+
+  .rarity-rare {
+    background-color: #1565c0;
+    color: #fff;
+  }
+
+  .rarity-epic {
+    background-color: #7b1fa2;
+    color: #fff;
+  }
+
+  .rarity-legendary {
+    background-color: #ff6f00;
+    color: #fff;
+  }
+
+  .category-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .category-btn {
+    background-color: #333;
+    border: none;
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .category-btn:hover {
+    background-color: #444;
+    transform: translateY(-2px);
+  }
+
+  .category-btn.active {
+    background-color: #4CAF50;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(255, 215, 0, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    }
+  }
+
+  #other-loot-link {
+    background-color: #ffd700 !important;
+    color: #333 !important;
+    font-weight: bold;
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+    border: 2px solid #ffea00 !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+    animation: pulse 2s infinite;
+  }
+
+  #other-loot-link:hover {
+    background-color: #ffea00 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    animation: none;
   }
   

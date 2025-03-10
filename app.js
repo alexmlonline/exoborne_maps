@@ -2080,6 +2080,40 @@ $(document).ready(function () {
   // Call the function to check if it's the first visit
   checkFirstVisit();
 
+  // Add event listener for Other Loot link
+  $('#other-loot-link').on('click', function(e) {
+    e.preventDefault();
+    // Show the Other Loot modal
+    $('#other-loot-modal').css('display', 'block');
+    
+    // Update URL with loot parameter
+    updateUrlWithLootParam(true);
+    
+    // Track event if analytics is available
+    if (typeof trackEvent === 'function') {
+      trackEvent('other_loot_opened');
+    }
+  });
+  
+  // Add event listener for the close button in the Other Loot modal
+  $('#close-loot-modal').on('click', function() {
+    closeOtherLootModal();
+  });
+  
+  // Close modal when clicking outside the content
+  $('#other-loot-modal').on('click', function(event) {
+    if (event.target === this) {
+      closeOtherLootModal();
+    }
+  });
+  
+  // Add keyboard support to close the modal with Escape key
+  $(document).on('keydown', function(event) {
+    if (event.key === 'Escape' && $('#other-loot-modal').css('display') === 'block') {
+      closeOtherLootModal();
+    }
+  });
+
   // Mobile placeholder "Continue Anyway" button
   $('#continue-anyway-btn').on('click', function() {
     $('#mobile-placeholder').hide();
@@ -2461,6 +2495,17 @@ $(document).ready(function () {
         updateUrlWithSelection();
       }
     }
+  });
+
+  // Add event listeners for category buttons in the Other Loot modal
+  $('.category-btn').on('click', function() {
+    const category = $(this).data('category');
+    
+    // Filter loot items by category
+    filterLootByCategory(category);
+    
+    // Update URL with category parameter
+    updateUrlWithLootParam(true, category);
   });
 });
 
@@ -3083,6 +3128,8 @@ window.addEventListener('unhandledrejection', function(event) {
 function checkUrlParameters() {
     const urlParams = new URLSearchParams(window.location.search);
     const guideParam = urlParams.get('guide');
+    const lootParam = urlParams.get('loot');
+    const categoryParam = urlParams.get('category');
     
     // Check for guide parameter
     if (guideParam === '1') {
@@ -3096,4 +3143,92 @@ function checkUrlParameters() {
         $('#heatmap-overlay').show();
         $('#toggle-heatmap').addClass('active');
     }
+    
+    // Check for loot parameter to open the Other Loot modal
+    if (lootParam === '1') {
+        // Show the Other Loot modal
+        $('#other-loot-modal').css('display', 'block');
+        
+        // Apply category filter if specified
+        if (categoryParam) {
+            // Make sure the category exists
+            const validCategories = ['all', 'resources', 'weapons', 'armor', 'consumables', 'tools'];
+            if (validCategories.includes(categoryParam)) {
+                filterLootByCategory(categoryParam);
+            }
+        }
+        
+        // Track event if analytics is available
+        if (typeof trackEvent === 'function') {
+            trackEvent('other_loot_opened_from_url', { category: categoryParam || 'all' });
+        }
+    }
+}
+
+// Function to update URL with loot parameter
+function updateUrlWithLootParam(showLoot) {
+  const url = new URL(window.location.href);
+  
+  // Preserve existing parameters
+  const existingParams = new URLSearchParams(window.location.search);
+  
+  if (showLoot) {
+    url.searchParams.set('loot', '1');
+  } else {
+    url.searchParams.delete('loot');
+  }
+  
+  // Update URL without reloading the page
+  window.history.replaceState({}, '', url);
+}
+
+// Function to filter loot items by category
+function filterLootByCategory(category) {
+  // Remove active class from all buttons
+  $('.category-btn').removeClass('active');
+  
+  // Add active class to the selected category button
+  $(`.category-btn[data-category="${category}"]`).addClass('active');
+  
+  // Show/hide items based on category
+  $('.loot-item').each(function() {
+    if (category === 'all' || $(this).data('category') === category) {
+      $(this).show();
+    } else {
+      $(this).hide();
+    }
+  });
+}
+
+// Function to update URL with loot and category parameters
+function updateUrlWithLootParam(showLoot, category = null) {
+  const url = new URL(window.location.href);
+  
+  // Preserve existing parameters
+  const existingParams = new URLSearchParams(window.location.search);
+  
+  if (showLoot) {
+    url.searchParams.set('loot', '1');
+    
+    // Add category parameter if provided
+    if (category && category !== 'all') {
+      url.searchParams.set('category', category);
+    } else {
+      url.searchParams.delete('category');
+    }
+  } else {
+    url.searchParams.delete('loot');
+    url.searchParams.delete('category');
+  }
+  
+  // Update URL without reloading the page
+  window.history.replaceState({}, '', url);
+}
+
+// Function to close the Other Loot modal
+function closeOtherLootModal() {
+  $('#other-loot-modal').css('display', 'none');
+  
+  // Remove loot parameter from URL
+  updateUrlWithLootParam(false);
 }
