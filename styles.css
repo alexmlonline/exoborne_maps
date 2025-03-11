@@ -20,6 +20,7 @@
     border-right: 1px solid #444;
     display: flex;
     flex-direction: column;
+    scrollbar-width: none;
   }
   
   #map-container {
@@ -282,7 +283,7 @@
   }
   
   #poi-groups-container {
-    max-height: 400px;
+    max-height: 450px;
     overflow-y: auto;
     padding-right: 5px;
     margin-bottom: 8px;
@@ -625,6 +626,11 @@
     color: #0044ff; /* Blue color for Distilleries */
   }
   
+  #context-poi-type option[value="emp-jammer"] {
+    background-color: #272727;
+    color: #e91e63; /* Pink color for EMP Jammer */
+  }
+  
   #context-delete-btn {
     background-color: #f44336;
   }
@@ -731,6 +737,11 @@
   #poi-type option[value="distilleries"] {
     background-color: #272727;
     color: #0044ff; /* Blue color for Distilleries */
+  }
+  
+  #poi-type option[value="emp-jammer"] {
+    background-color: #272727;
+    color: #e91e63; /* Pink color for EMP Jammer */
   }
   
   #show-unapproved-btn {

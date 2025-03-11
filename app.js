@@ -98,6 +98,7 @@ function updateContextMenuHtml() {
           <option value="container">Locked Containers</option>
           <option value="respawn">Respawn</option>
           <option value="distilleries">Botkin Distilleries</option>
+          <option value="emp-jammer">EMP Jammer</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -1645,7 +1646,8 @@ function getPoiColor(type) {
     case 'loot': return '#9932cc'; // Dark orchid (more vibrant purple)
     case 'container': return '#9b8840'; // Gold-brown for Locked Containers
     case 'respawn': return '#ff0000'; // Bright red for Respawn points
-    case 'distilleries': return '#0044ff'; // Bright red for Respawn points
+    case 'distilleries': return '#0044ff'; // Bright blue for Distilleries
+    case 'emp-jammer': return '#e91e63'; // Pink for EMP Jammer
     default:
       console.log('Unknown POI type:', type);
       return '#ffffff';
