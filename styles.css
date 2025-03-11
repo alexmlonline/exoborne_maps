@@ -282,7 +282,7 @@
   }
   
   #poi-groups-container {
-    max-height: 350px;
+    max-height: 400px;
     overflow-y: auto;
     padding-right: 5px;
     margin-bottom: 8px;
@@ -620,6 +620,11 @@
     color: #ff0000; /* Red color for Respawn */
   }
   
+  #context-poi-type option[value="distilleries"] {
+    background-color: #272727;
+    color: #0044ff; /* Blue color for Distilleries */
+  }
+  
   #context-delete-btn {
     background-color: #f44336;
   }
@@ -721,6 +726,11 @@
   #poi-type option[value="container"] {
     background-color: #272727;
     color: #9b8840; /* Gold-brown for Locked Containers */
+  }
+
+  #poi-type option[value="distilleries"] {
+    background-color: #272727;
+    color: #0044ff; /* Blue color for Distilleries */
   }
   
   #show-unapproved-btn {
