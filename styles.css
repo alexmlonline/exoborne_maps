@@ -282,12 +282,6 @@
     border-bottom: 1px solid #444;
   }
   
-  #poi-groups-container {
-    max-height: 450px;
-    overflow-y: auto;
-    padding-right: 5px;
-    margin-bottom: 8px;
-  }
 
   #page-title {
     margin-bottom: 15px;
@@ -1384,5 +1378,61 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+  
+  /* Style for POI category headers */
+  .poi-category h4 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #fff;
+    border-bottom: 2px solid #444;
+    padding-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .poi-category h4 .select-all-btn {
+    font-size: 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    margin-left: 10px;
+  }
+
+  .poi-category h4 .select-all-btn:hover {
+    background-color: #555;
+  }
+
+  /* Add margin between categories */
+  .poi-category {
+    margin-bottom: 20px;
+  }
+
+  /* Style for the group headers */
+  .poi-group-header {
+    background-color: #333;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.3s ease;
+  }
+
+  .poi-group-header:hover {
+    background-color: #444;
+  }
+
+  .poi-group-header label {
+    flex-grow: 1;
+    margin-left: 10px;
+    font-weight: bold;
+    color: #ddd;
   }
   

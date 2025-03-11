@@ -2309,6 +2309,57 @@ $(document).ready(function () {
     showNotification('All groups deselected, URL parameters cleared');
   });
 
+  // Handle category "Only" buttons (Money Making, Resources)
+  $('.poi-category h4 .select-all-btn').on('click', function(e) {
+    e.stopPropagation();
+    
+    // Get the parent category element
+    const category = $(this).closest('.poi-category');
+    
+    // Uncheck all checkboxes first
+    $('.group-checkbox').prop('checked', false).trigger('change');
+    
+    // Check only the checkboxes within this category
+    category.find('.group-checkbox').prop('checked', true).trigger('change');
+    
+    // Clear 'group' and 'select' parameters from the URL
+    clearUrlParameters();
+    
+    // Clear any selected POIs
+    selectedPoi = null;
+    selectedPois = [];
+    $('.poi-marker').removeClass('selected multi-selected');
+    // Clear group highlighting
+    $('.poi-group-header').removeClass('highlighted');
+    updateSelectionIndicator();
+    
+    // Get category name for notification
+    const categoryName = category.find('h4').text().split(' ')[0];
+    
+    // Get all visible POIs after the category selection
+    const visiblePois = pois.filter(poi => poi.visible);
+    
+    // Center the map on these POIs if there are any
+    if (visiblePois.length > 0) {
+      // Create temporary selectedPois array for centering
+      const tempSelectedPois = visiblePois.map(poi => poi.id);
+      
+      // Store original selectedPois
+      const originalSelectedPois = selectedPois;
+      
+      // Temporarily set selectedPois to the filtered POIs
+      selectedPois = tempSelectedPois;
+      
+      // Center the map on the filtered POIs
+      centerMapOnSelectedPois();
+      
+      // Restore original selectedPois
+      selectedPois = originalSelectedPois;
+    }
+    
+    showNotification(`Showing only ${categoryName} POIs, URL parameters cleared`);
+  });
+
   // Handle Select Only buttons
   $('.select-only-btn').on('click', function(e) {
     e.stopPropagation(); // Prevent triggering the checkbox click
