@@ -2900,13 +2900,21 @@ function centerMapOnSelectedPois() {
     const containerWidth = $('#map-container').width();
     const containerHeight = $('#map-container').height();
     
-    // Add padding around the bounding box
-    const padding = 100;
-    const zoomX = (containerWidth - padding) / width;
-    const zoomY = (containerHeight - padding) / height;
+    // Add padding around the bounding box (increased from 100 to 200)
+    const padding = 200;
+    
+    // Ensure we have a minimum size to prevent division by zero or tiny values
+    const minSize = 1;
+    const safeWidth = Math.max(width, minSize);
+    const safeHeight = Math.max(height, minSize);
+    
+    // Calculate zoom levels that would fit the content in the container
+    const zoomX = (containerWidth - padding) / safeWidth;
+    const zoomY = (containerHeight - padding) / safeHeight;
     
     // Use the smaller zoom level to ensure all POIs are visible
-    const newZoom = Math.min(zoomX, zoomY, 2); // Cap at 2x zoom
+    // Reduced the cap from 2 to 1.5 to allow more zoom-out for widely spread POIs
+    const newZoom = Math.min(zoomX, zoomY, 1.5);
     
     // Set the new zoom level
     currentZoom = newZoom;
@@ -2918,8 +2926,9 @@ function centerMapOnSelectedPois() {
     // Apply boundary constraints
     applyMapBoundaryConstraints(containerWidth, containerHeight);
     
-    
+    // Update the map transform
     updateMapTransform();
+    
     showNotification(`Centered map on ${selectedPois.length} selected POIs`);
   }
 }
@@ -2968,6 +2977,11 @@ function centerMapOnPoisOfType(type) {
     
     // Restore original selectedPois
     selectedPois = originalSelectedPois;
+    
+    // Show notification with count
+    showNotification(`Centered map on ${visiblePois.length} ${type} POIs`);
+  } else {
+    showNotification(`No visible ${type} POIs to center on`, true);
   }
 }
 
@@ -2992,19 +3006,31 @@ function centerMapOnUnapprovedPois() {
     
     // Restore original selectedPois
     selectedPois = originalSelectedPois;
+    
+    // Show notification with count
+    showNotification(`Centered map on ${visiblePois.length} unapproved POIs`);
+  } else {
+    showNotification('No visible unapproved POIs to center on', true);
   }
 }
 
 // Function to apply boundary constraints to the map position
 function applyMapBoundaryConstraints(containerWidth, containerHeight) {
+  // Get the current state - are we centering on POIs?
+  const isCenteringOnPois = selectedPois.length > 0;
+  
+  // Allow some extra margin when centering on POIs
+  const extraMargin = isCenteringOnPois ? 0.2 : 0; // 20% extra margin when centering
+  
   // Ensure the map doesn't go beyond the viewport boundaries
   if (MAP_WIDTH * currentZoom < containerWidth) {
     // If the map is smaller than the container, center it horizontally
     mapPosition.x = (containerWidth / currentZoom - MAP_WIDTH) / 2;
   } else {
     // If the map is larger than the container, constrain it to the boundaries
-    const minX = containerWidth / currentZoom - MAP_WIDTH;
-    const maxX = 0;
+    // Allow extra margin when centering on POIs
+    const minX = containerWidth / currentZoom - MAP_WIDTH - (MAP_WIDTH * extraMargin);
+    const maxX = MAP_WIDTH * extraMargin;
     mapPosition.x = Math.max(minX, Math.min(maxX, mapPosition.x));
   }
 
@@ -3013,8 +3039,9 @@ function applyMapBoundaryConstraints(containerWidth, containerHeight) {
     mapPosition.y = (containerHeight / currentZoom - MAP_HEIGHT) / 2;
   } else {
     // If the map is larger than the container, constrain it to the boundaries
-    const minY = containerHeight / currentZoom - MAP_HEIGHT;
-    const maxY = 0;
+    // Allow extra margin when centering on POIs
+    const minY = containerHeight / currentZoom - MAP_HEIGHT - (MAP_HEIGHT * extraMargin);
+    const maxY = MAP_HEIGHT * extraMargin;
     mapPosition.y = Math.max(minY, Math.min(maxY, mapPosition.y));
   }
 }
