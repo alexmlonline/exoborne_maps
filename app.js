@@ -1052,8 +1052,8 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
         </select>
       </div>
       <div class="context-menu-field">
-        <label for="context-poi-desc">Note:</label>
-        <textarea id="context-poi-desc" placeholder="Add a note about this POI (shown on hover)"></textarea>
+        <label for="context-poi-note">Note:</label>
+        <textarea id="context-poi-note" placeholder="Add a note about this POI (shown on hover)"></textarea>
       </div>
       <div id="context-nearby-warning" class="warning-message" style="display: none;"></div>
       <div class="context-menu-buttons">
@@ -1154,7 +1154,7 @@ function saveContextMenuPoi() {
 
   const name = `POI-${Date.now().toString().slice(-4)}`;
   const type = $('#context-poi-type').val();
-  const description = $('#context-poi-desc').val().trim();
+  const description = $('#context-poi-note').val().trim();
 
   // Check for nearby POIs one last time
   const nearbyPois = checkForNearbyPois(mapX, mapY, type);
@@ -1282,7 +1282,7 @@ function saveEditedPoi() {
 
     // Get values from context menu form
     const type = $('#context-poi-type').val();
-    const description = $('#context-poi-desc').val();
+    const description = $('#context-poi-note').val();
 
     // Create updated POI object
     const updatedPoi = {
@@ -1296,7 +1296,7 @@ function saveEditedPoi() {
     showNotification('Updating POI...');
 
     // Send update to server
-    fetch(`${API_ENDPOINT}/update-poi${hasEditPermission() ? '?canEdit=1' : ''}`, {
+    fetch(`${API_ENDPOINT}/save-poi${hasEditPermission() ? '?canEdit=1' : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
