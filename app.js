@@ -329,6 +329,9 @@ function loadPoisFromFile() {
   
   showNotification('Loading POIs from server...');
   
+  // Store the current state of preserveUnapprovedOnly flag
+  const showingOnlyUnapproved = window.preserveUnapprovedOnly;
+  
   // Load both approved and draft POIs
   Promise.all([
     // Load approved POIs
@@ -393,7 +396,7 @@ function loadPoisFromFile() {
     pois = Array.from(poiMap.values());
     
     // Check if we need to restore the "show unapproved only" state
-    if (window.preserveUnapprovedOnly) {
+    if (showingOnlyUnapproved) {
       // Set visibility for POIs - only show unapproved
       pois.forEach(poi => {
         poi.visible = !poi.approved;
@@ -401,9 +404,6 @@ function loadPoisFromFile() {
       
       // Uncheck all group checkboxes to reflect that we're not using the normal filtering
       $('.group-checkbox').prop('checked', false);
-      
-      // Clear the flag
-      window.preserveUnapprovedOnly = false;
       
       showNotification('Showing only unapproved POIs');
     }
@@ -421,16 +421,22 @@ function loadPoisFromFile() {
     
     // Update groups from URL after POIs are loaded
     // Only do this if we're not showing only unapproved POIs
-    if (!window.preserveUnapprovedOnly) {
+    if (!showingOnlyUnapproved) {
       updateGroupsFromUrl();
     }
     
     // Process URL selected POIs after POIs are loaded
     processUrlSelectedPois();
+    
+    // Clear the flag after all operations are complete
+    window.preserveUnapprovedOnly = false;
   })
   .catch(error => {
     console.error('Error in POI loading process:', error);
     showNotification('Error loading POIs from server', true);
+    
+    // Clear the flag in case of error
+    window.preserveUnapprovedOnly = false;
   });
 }
 
