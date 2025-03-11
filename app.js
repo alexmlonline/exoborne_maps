@@ -990,14 +990,13 @@ function approvePoi(poiId) {
         const index = pois.findIndex(p => p.id === poiId);
         if (index !== -1) {
           pois[index] = { ...pois[index], approved: true };
+          
+          // Just render the POIs without reloading from server
+          renderPois();
+          savePoisToStorage();
+          
+          showNotification('POI approved successfully');
         }
-        
-        showNotification('POI approved successfully');
-        
-        // Refresh POIs from server to ensure we have the latest data
-        // Store the showingOnlyUnapproved state before reloading
-        window.preserveUnapprovedOnly = showingOnlyUnapproved;
-        loadPoisFromFile();
       } else {
         showNotification('Error approving POI: ' + (data.error || 'Unknown error'), true);
       }
