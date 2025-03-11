@@ -52,9 +52,6 @@ const formatCoordinate = (value) => {
 function hasEditPermission() {
   const urlParams = new URLSearchParams(window.location.search);
   const canEdit = urlParams.get('canEdit') === '1';
-  console.log('URL params:', window.location.search);
-  console.log('canEdit from URL:', urlParams.get('canEdit'));
-  console.log('hasEditPermission result:', canEdit);
   return canEdit;
 }
 
@@ -357,8 +354,6 @@ function loadPoisFromFile() {
     })
   ])
   .then(([approvedPois, draftPois]) => {
-    console.log('Loaded POIs:', { approved: approvedPois.length, draft: draftPois.length });
-    
     // Process the POIs to ensure they have approval status and remove any action property
     const processedApproved = approvedPois.map(poi => {
       // Remove action property and sessionId if they exist
@@ -415,11 +410,8 @@ function loadPoisFromFile() {
     
     // Only render POIs if we're not skipping rendering
     if (!skipRendering) {
-      console.log("loadPoisFromFile: rendering POIs, addMode =", addMode);
       renderPois();
       savePoisToStorage();
-    } else {
-      console.log("loadPoisFromFile: skipping rendering, addMode =", addMode);
     }
     
     // Update last sync time
@@ -599,37 +591,37 @@ function resetMapView() {
 
 // POI management functions
 function toggleAddMode() {
-  console.log("toggleAddMode called, current addMode:", addMode);
   addMode = !addMode;
-  console.log("toggleAddMode: new addMode value:", addMode);
-  $('#add-mode-btn').toggleClass('active', addMode);
-
+  
   if (addMode) {
-    console.log("toggleAddMode: showing form");
+    $('#add-mode-btn').addClass('active');
     $('#game-map').css('cursor', 'crosshair');
     $('#poi-form').show();
-    console.log("toggleAddMode: form display style:", $('#poi-form').css('display'));
     
-    // Force the form to be visible if it's not already
-    if ($('#poi-form').css('display') === 'none') {
-      console.log("toggleAddMode: forcing form to be visible");
-      $('#poi-form').css('display', 'block');
-    }
+    // Force the form to be visible (sometimes jQuery show() doesn't work correctly)
+    document.getElementById('poi-form').style.display = 'block';
     
+    // Clear form fields
+    $('#poi-type').val('shelter');
     $('#poi-x').val('');
     $('#poi-y').val('');
     $('#poi-desc').val('');
-    showNotification('Click on the map to add a POI or enter coordinates manually');
-
+    
     // Hide heatmap overlay when adding POIs
     if (isHeatmapVisible) {
       toggleHeatmap();
     }
+    
+    // Show notification
+    showNotification('Add mode enabled. Double-click on the map to add a POI.');
   } else {
-    console.log("toggleAddMode: hiding form");
+    $('#add-mode-btn').removeClass('active');
     $('#game-map').css('cursor', 'default');
     $('#poi-form').hide();
     tempPoi = null;
+    
+    // Show notification
+    showNotification('Add mode disabled.');
   }
 }
 
@@ -944,84 +936,93 @@ function hexToRgb(hex) {
 
 function deletePoi(poiId) {
   try {
-    // Debug log to help identify issues
-    console.log('Deleting POI:', poiId);
-    console.log('Current session ID:', sessionId);
-    
     const poi = pois.find(p => p.id === poiId);
-    if (!poi) {
-      console.error('POI not found:', poiId);
+    if (!poi) return;
+
+    // Check if user has permission to delete this POI
+    const canDelete = canEditPoi(poiId);
+    if (!canDelete) {
+      showNotification('You do not have permission to delete this POI', true);
       return;
     }
-    
-    console.log('POI session ID:', poi.sessionId);
-    console.log('Is owned by current session:', poi.sessionId === sessionId);
-    console.log('Has edit permission:', hasEditPermission());
-    
-    // Check if this is an approved POI
-    if (poi.approved === true) {
-      showNotification('Cannot delete approved POIs', true);
-      return;
-    }
-    
-    // Users with edit permission can delete any unapproved POI
-    // Users without edit permission can only delete POIs they created
-    if (!hasEditPermission() && poi.sessionId && poi.sessionId !== sessionId) {
-      showNotification('You can only delete POIs that you created in this session', true);
-      return;
-    }
-    
+
     // Confirm deletion
     if (!confirm(`Are you sure you want to delete this POI?\n\nType: ${poi.type}\nCoordinates: X: ${poi.x}, Y: ${poi.y}`)) {
       return;
     }
-    
-    // Remove from local array
-    pois = pois.filter(p => p.id !== poiId);
 
-    // Send delete request to server for unapproved POIs
-    if (poi.approved === false) {
-      // Log the canEdit value for debugging
-      const canEditValue = hasEditPermission() ? '1' : '0';
-      console.log('Sending delete request with canEdit:', canEditValue);
-      
-      // Include canEdit in both the URL and the request body
-      const url = `${API_ENDPOINT}/delete-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
-      console.log('Request URL:', url);
-      
-      fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          id: poiId,
-          sessionId: sessionId,
-          canEdit: canEditValue
-        }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showNotification('POI deleted successfully');
-          renderPois();
-          savePoisToStorage(); // Save changes to localStorage
-        } else {
-          showNotification('Error deleting POI: ' + data.error, true);
+    // Create a copy of the POI with delete action
+    const deletedPoi = { 
+      ...poi, 
+      action: 'delete',
+      canEdit: hasEditPermission() ? '1' : '0'
+    };
+
+    // Show loading notification
+    showNotification('Deleting POI...');
+
+    // Include canEdit in both the URL and the request body
+    const canEditValue = hasEditPermission() ? '1' : '0';
+    const url = `${API_ENDPOINT}/delete-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
+
+    // Send delete request to server
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(deletedPoi),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Remove POI from local array
+        pois = pois.filter(p => p.id !== poiId);
+        
+        // Clear selection if this was the selected POI
+        if (selectedPoi === poiId) {
+          selectedPoi = null;
         }
-      })
-      .catch(error => {
-        console.error('Error deleting POI:', error);
-        showNotification('Error deleting POI', true);
-      });
-    } else {
+        
+        // Remove from selectedPois array if present
+        selectedPois = selectedPois.filter(id => id !== poiId);
+        updateSelectionIndicator();
+        
+        showNotification('POI deleted successfully');
+        renderPois();
+        savePoisToStorage();
+      } else {
+        showNotification('Error deleting POI: ' + (data.error || 'Unknown error'), true);
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting POI:', error);
+      showNotification('Error deleting POI: ' + error.message, true);
+      
+      // Fallback: Delete locally if server request fails
+      pois = pois.filter(p => p.id !== poiId);
+      
+      // Clear selection if this was the selected POI
+      if (selectedPoi === poiId) {
+        selectedPoi = null;
+      }
+      
+      // Remove from selectedPois array if present
+      selectedPois = selectedPois.filter(id => id !== poiId);
+      updateSelectionIndicator();
+      
+      showNotification('POI deleted locally (server update failed)');
       renderPois();
-      savePoisToStorage(); // Save changes to localStorage
-    }
+      savePoisToStorage();
+    });
     trackEvent('DeletePOI', {
       poiId: poiId
     });
-  // ... rest of the function ...
   } catch (error) {
     trackError(error, { action: 'DeletePOI', poiId });
     throw error;
@@ -1064,13 +1065,9 @@ function approvePoi(poiId) {
     // Show loading notification
     showNotification('Approving POI...');
 
-    // Log the canEdit value for debugging
-    const canEditValue = hasEditPermission() ? '1' : '0';
-    console.log('Sending approve request with canEdit:', canEditValue);
-    
     // Include canEdit in both the URL and the request body
+    const canEditValue = hasEditPermission() ? '1' : '0';
     const url = `${API_ENDPOINT}/approve-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
-    console.log('Request URL:', url);
 
     // Send approval request to server
     fetch(url, {
@@ -1277,155 +1274,166 @@ function saveContextMenuPoi() {
 
 // Function to save unapproved POIs to the server
 function saveUnapprovedPoi(poi) {
-    // Show loading notification
-    showNotification('Saving new POI...');
+  // Show loading notification
+  showNotification('Saving POI...');
+
+  // Send POI to server
+  fetch(`${API_ENDPOINT}/save-poi`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(poi),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Add the new POI to the local array
+      pois.push(poi);
+      
+      // Update UI
+      renderPois();
+      savePoisToStorage();
+      
+      // Show success notification
+      showNotification('POI saved successfully');
+      
+      // Clear form
+      $('#poi-type').val('shelter');
+      $('#poi-x').val('');
+      $('#poi-y').val('');
+      $('#poi-desc').val('');
+      
+      // Exit add mode
+      toggleAddMode();
+    } else {
+      showNotification('Error saving POI: ' + (data.error || 'Unknown error'), true);
+    }
+  })
+  .catch(error => {
+    console.error('Error saving POI:', error);
+    showNotification('Error saving POI: ' + error.message, true);
     
-    // Make a copy of the POI to avoid modifying the original
-    const poiToSave = { ...poi };
+    // Fallback: Save locally if server request fails
+    pois.push(poi);
+    renderPois();
+    savePoisToStorage();
+    showNotification('POI saved locally (server update failed)');
     
-    // Ensure the POI has approved=false
-    poiToSave.approved = false;
+    // Clear form
+    $('#poi-type').val('shelter');
+    $('#poi-x').val('');
+    $('#poi-y').val('');
+    $('#poi-desc').val('');
     
-    fetch(`${API_ENDPOINT}/save-poi`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            ...poiToSave,
-            action: 'create' // Add an action flag to indicate this is a new POI
-        }),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('POI saved to file successfully:', data);
-        
-        if (data.success) {
-            showNotification('POI saved to draft file');
-            
-            // Force reload POIs from server to ensure we have the latest data
-            loadPoisFromFile();
-        } else {
-            showNotification('Error saving POI: ' + (data.error || 'Unknown error'), true);
-            console.error('Server reported error:', data.error);
-            
-            // Fallback to local storage if server save fails
-            const unapprovedPois = JSON.parse(localStorage.getItem('unapproved_pois') || '[]');
-            unapprovedPois.push(poi);
-            localStorage.setItem('unapproved_pois', JSON.stringify(unapprovedPois));
-        }
-    })
-    .catch(error => {
-        console.error('Error saving POI to file:', error);
-        showNotification('Failed to save POI to file: ' + error.message, true);
-        
-        // Fallback to local storage if server save fails
-        const unapprovedPois = JSON.parse(localStorage.getItem('unapproved_pois') || '[]');
-        unapprovedPois.push(poi);
-        localStorage.setItem('unapproved_pois', JSON.stringify(unapprovedPois));
-    });
+    // Exit add mode
+    toggleAddMode();
+  });
 }
 
 function saveEditedPoi() {
-  // Use selectedPoi instead of getting it from contextMenu.data
-  const poiId = selectedPoi;
-  
-  // Debug log to help identify issues
-  console.log('Editing POI:', poiId);
-  console.log('Current session ID:', sessionId);
-  
-  const poi = pois.find(p => p.id === poiId);
-  if (!poi) {
-    console.error('POI not found:', poiId);
-    return;
-  }
-  
-  console.log('POI session ID:', poi.sessionId);
-  console.log('Is owned by current session:', poi.sessionId === sessionId);
+  try {
+    const poiId = selectedPoi;
+    if (!poiId) return;
 
-  // Check if user has permission to edit this POI
-  const isAdmin = hasEditPermission();
-  const isOwner = poi.sessionId === sessionId;
-  
-  if (!isAdmin && !isOwner) {
-    showNotification('You do not have permission to edit this POI', true);
-    $('#context-menu').hide();
-    return;
-  }
+    const poi = pois.find(p => p.id === poiId);
+    if (!poi) return;
 
-  // Additional safety check - don't allow editing approved POIs unless admin
-  if (poi.approved === true && !isAdmin) {
-    showNotification('Cannot edit approved POIs', true);
-    $('#context-menu').hide();
-    return;
-  }
+    // Check if user has permission to edit this POI
+    const canEdit = canEditPoi(poiId);
+    if (!canEdit) {
+      showNotification('You do not have permission to edit this POI', true);
+      return;
+    }
 
-  // Update POI properties
-  poi.type = $('#context-poi-type').val();
-  poi.description = $('#context-poi-note').val().trim();
-  poi.lastEdited = new Date().toISOString(); // Add last edited timestamp
+    // Get values from context menu form
+    const type = $('#context-poi-type').val();
+    const description = $('#context-poi-desc').val();
 
-  // If this is an unapproved POI, send the updated version to the server
-  if (poi.approved === false || isAdmin) {
+    // Create updated POI object
+    const updatedPoi = {
+      ...poi,
+      type,
+      description,
+      canEdit: hasEditPermission() ? '1' : '0'
+    };
+
     // Show loading notification
-    showNotification('Saving changes...');
-    
-    // Send the updated POI to the server
-    $.ajax({
-      url: `${API_ENDPOINT}/save-poi`,
+    showNotification('Updating POI...');
+
+    // Send update to server
+    fetch(`${API_ENDPOINT}/update-poi${hasEditPermission() ? '?canEdit=1' : ''}`, {
       method: 'POST',
-      data: JSON.stringify({
-        ...poi,
-        action: 'update' // Add an action flag to indicate this is an update
-      }),
-      contentType: 'application/json',
-      success: function(response) {
-        console.log('POI updated on server successfully:', response);
-        
-        if (response.success) {
-          showNotification('POI updated successfully (awaiting approval)');
-          
-          // Update the local POI with the server response
-          if (response.pois && Array.isArray(response.pois)) {
-            // Find the updated POI in the response
-            const updatedPoi = response.pois.find(p => p.id === poiId);
-            if (updatedPoi) {
-              // Update the local POI with the server version
-              Object.assign(poi, updatedPoi);
-            }
-          }
-          
-          // Render the updated POIs
-          renderPois();
-          savePoisToStorage();
-          
-        } else {
-          showNotification('Error updating POI: ' + (response.error || 'Unknown error'), true);
-        }
+      headers: {
+        'Content-Type': 'application/json',
       },
-      error: function(xhr, status, error) {
-        console.error('Error updating POI on server:', error);
-        showNotification('POI updated locally, but failed to update on server', true);
+      body: JSON.stringify(updatedPoi),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Update local POI
+        const index = pois.findIndex(p => p.id === poiId);
+        if (index !== -1) {
+          pois[index] = {
+            ...pois[index],
+            type,
+            description
+          };
+        }
         
-        // Still update local storage even if server update fails
+        // Hide context menu
+        $('#context-menu').hide();
+        
+        // Update UI
         renderPois();
         savePoisToStorage();
+        
+        showNotification('POI updated successfully');
+      } else {
+        showNotification('Error updating POI: ' + (data.error || 'Unknown error'), true);
+      }
+    })
+    .catch(error => {
+      console.error('Error updating POI:', error);
+      showNotification('Error updating POI: ' + error.message, true);
+      
+      // Fallback: Update locally if server request fails
+      const index = pois.findIndex(p => p.id === poiId);
+      if (index !== -1) {
+        pois[index] = {
+          ...pois[index],
+          type,
+          description
+        };
+        
+        // Hide context menu
+        $('#context-menu').hide();
+        
+        // Update UI
+        renderPois();
+        savePoisToStorage();
+        
+        showNotification('POI updated locally (server update failed)');
       }
     });
-  } else {
-    // For approved POIs, just update locally
-    renderPois();
-    savePoisToStorage();
-    showNotification('POI updated successfully');
+    trackEvent('EditPOI', {
+      poiId: poiId
+    });
+  } catch (error) {
+    trackError(error, { action: 'EditPOI', poiId: selectedPoi });
+    throw error;
   }
-  
-  $('#context-menu').hide();
-  selectPoi(poiId);
 }
 
 // Function to find overlapping POIs at a specific location
@@ -1656,77 +1664,63 @@ $('head').append(`
 `);
 
 function getPoiColor(type) {
-  const normalizedType = String(type).toLowerCase().trim();
-  switch (normalizedType) {
-    case 'shelter': return '#ffd700'; // Gold for Rebirth Shelter
-    case 'bunker': return '#ff8c00'; // Dark orange for Rebirth Bunker (more visible than dark gold)
-    case 'fragment': return '#32cd32'; // Lime green (more vibrant than previous green)
-    case 'machinery': return '#a9a9a9'; // Darker gray for Machinery Parts (more visible)
-    case 'electronics': return '#1e90ff'; // Dodger blue (slightly more vibrant)
-    case 'secret': return '#4682b4'; // Steel blue (more vibrant than previous gray-blue)
-    case 'ec-kits': return '#da70d6'; // Orchid (more vibrant than light purple)
-    case 'collectibles': return '#ff69b4'; // Hot pink (more vibrant than light pink)
-    case 'loot': return '#9932cc'; // Dark orchid (more vibrant purple)
-    case 'container': return '#9b8840'; // Gold-brown for Locked Containers
-    case 'respawn': return '#ff0000'; // Bright red for Respawn points
-    case 'distilleries': return '#0044ff'; // Bright blue for Distilleries
-    case 'emp-jammer': return '#e91e63'; // Pink for EMP Jammer
+  switch (type) {
+    case 'shelter':
+      return '#ffd700'; // Gold
+    case 'bunker':
+      return '#b8860b'; // Dark goldenrod
+    case 'fragment':
+      return '#73a575'; // Green
+    case 'machinery':
+      return '#d3d3d3'; // Light gray
+    case 'electronics':
+      return '#2196f3'; // Blue
+    case 'secret':
+      return '#607d8b'; // Blue gray
+    case 'ec-kits':
+      return '#d8b4e2'; // Light purple
+    case 'collectibles':
+      return '#FFB6C1'; // Light pink
+    case 'loot':
+      return '#9c27b0'; // Purple
+    case 'container':
+      return '#9b8840'; // Olive
+    case 'respawn':
+      return '#ff0000'; // Red
+    case 'distilleries':
+      return '#0044ff'; // Blue
+    case 'emp-jammer':
+      return '#e91e63'; // Pink
     default:
-      console.log('Unknown POI type:', type);
-      return '#ffffff';
+      return '#ffffff'; // White for unknown types
   }
 }
 
 // Storage and sync functions
 function loadPoisFromStorage() {
-  const storedData = localStorage.getItem(STORAGE_KEY);
-  console.log('Loading POIs from storage');
-  
-  if (storedData) {
+  const storedPois = localStorage.getItem(STORAGE_KEY);
+  if (storedPois) {
     try {
-      const data = JSON.parse(storedData);
-      pois = data.pois || []; // Use empty array if none in storage
-      lastSyncTime = data.lastSyncTime || 0;
+      pois = JSON.parse(storedPois);
       
-      console.log('Loaded POIs count:', pois.length);
+      // Ensure all POIs have a sessionId (for backward compatibility)
+      pois.forEach(poi => {
+        if (!poi.sessionId && !poi.approved) {
+          poi.sessionId = sessionId;
+        }
+      });
       
-      // Debug: Check if POIs have sessionId
-      if (pois.length > 0) {
-        console.log('Sample POI:', pois[0]);
-        console.log('POIs with sessionId:', pois.filter(p => p.sessionId).length);
-        console.log('POIs without sessionId:', pois.filter(p => !p.sessionId).length);
-        
-        // Add sessionId only to unapproved POIs that don't have it
-        // Approved POIs should not have sessionId
-        pois.forEach(poi => {
-          if (!poi.sessionId && poi.approved === false) {
-            console.log('Adding missing sessionId to unapproved POI:', poi.id);
-            poi.sessionId = 'legacy-poi';
-          }
-        });
-      }
-      
-      renderPois();
+      return true;
     } catch (e) {
-      console.error('Error loading POIs from storage:', e);
-      // If error loading, show default empty POIs
-      pois = [];
-      renderPois();
+      console.error('Error parsing stored POIs:', e);
+      return false;
     }
-  } else {
-    // If no storage data exists, initialize with empty array
-    pois = [];
-    savePoisToStorage();
-    renderPois();
   }
+  return false;
 }
 
 function savePoisToStorage() {
-  const dataToStore = {
-    pois: pois,
-    lastSyncTime: Date.now()
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(pois));
 }
 
 function syncWithServer(force = false) {
@@ -2742,26 +2736,17 @@ function formatCoordinateWithPrecision(value, precision) {
 
 // Function to initialize or retrieve the session ID
 function initSessionId() {
-  // Check if a session ID already exists in localStorage
+  // Try to get existing session ID from localStorage
   let existingSessionId = localStorage.getItem(SESSION_KEY);
   
-  console.log('Initializing session ID');
-  console.log('Existing session ID from localStorage:', existingSessionId);
-  
+  // If no session ID exists, generate a new one
   if (!existingSessionId) {
-    // Generate a new session ID if none exists
-    existingSessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 15);
+    existingSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
     localStorage.setItem(SESSION_KEY, existingSessionId);
-    console.log('Generated new session ID:', existingSessionId);
   }
   
+  // Set the global sessionId
   sessionId = existingSessionId;
-  console.log('Session ID set to:', sessionId);
-  
-  // Debug: Check if sessionId is properly set
-  setTimeout(() => {
-    console.log('Session ID after initialization:', sessionId);
-  }, 1000);
 }
 
 // Add keyboard shortcuts for zooming
@@ -2860,41 +2845,40 @@ function toggleGuide() {
 function centerMapOnSelectedPois() {
   if (selectedPois.length === 0) return;
   
-  // Get container dimensions
-  const containerWidth = $('#map-container').width();
-  const containerHeight = $('#map-container').height();
-  
-  // Calculate minimum zoom level based on container dimensions
-  // This ensures the map always fills at least one dimension of the viewport
-  const minZoomWidth = containerWidth / MAP_WIDTH;
-  const minZoomHeight = containerHeight / MAP_HEIGHT;
-  const minZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
-  
-  // If only one POI is selected, center directly on it
   if (selectedPois.length === 1) {
-    const poi = pois.find(p => p.id === selectedPois[0]);
+    // If only one POI is selected, center on it
+    const poiId = selectedPois[0];
+    const poi = pois.find(p => p.id === poiId);
     if (poi) {
-      console.log("Centering on single POI:", poi);
+      // Calculate the real coordinates on the map
+      const realX = (poi.x / 1.664) + offsetX;
+      const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
       
-      // Calculate the position to center this POI
-      mapPosition = {
-        x: containerWidth / (2 * currentZoom) - (poi.x / 1.664) - offsetX,
-        y: containerHeight / (2 * currentZoom) - (poi.y / 1.664) - offsetY - MAP_HEIGHT
-      };
+      // Center the map on this POI
+      const containerWidth = $('#map-container').width();
+      const containerHeight = $('#map-container').height();
       
-      // Apply boundary constraints to keep the map inside the viewport
+      mapPosition.x = (containerWidth / 2) - (realX * currentZoom);
+      mapPosition.y = (containerHeight / 2) - (realY * currentZoom);
+      
+      // Apply boundary constraints
       applyMapBoundaryConstraints(containerWidth, containerHeight);
       
+      // Update the map transform
       updateMapTransform();
-      showNotification("Centered map on selected POI");
+      
+      showNotification(`Centered map on selected POI`);
     }
   } else {
-    // For multiple POIs, calculate the bounding box
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    // If multiple POIs are selected, calculate the bounding box
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
     
     // Find the bounds of all selected POIs
-    selectedPois.forEach(id => {
-      const poi = pois.find(p => p.id === id);
+    selectedPois.forEach(poiId => {
+      const poi = pois.find(p => p.id === poiId);
       if (poi) {
         const realX = (poi.x / 1.664) + offsetX;
         const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
@@ -2906,46 +2890,36 @@ function centerMapOnSelectedPois() {
       }
     });
     
-    console.log("Bounding box for selected POIs:", { minX, minY, maxX, maxY });
-    
-    // Calculate center of the bounding box
+    // Calculate the center of the bounding box
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
     
-    // Calculate the width and height of the bounding box
+    // Calculate the size of the bounding box
     const width = maxX - minX;
     const height = maxY - minY;
     
-    // Ensure a minimum bounding box size to prevent extreme zoom on very close POIs
-    const minBoxSize = 50; // Minimum size in pixels
-    const adjustedWidth = Math.max(width, minBoxSize);
-    const adjustedHeight = Math.max(height, minBoxSize);
+    // Calculate the zoom level to fit the bounding box
+    const containerWidth = $('#map-container').width();
+    const containerHeight = $('#map-container').height();
     
-    // Add padding (20% of the bounding box size)
-    const paddingX = adjustedWidth * 0.2;
-    const paddingY = adjustedHeight * 0.2;
+    // Add padding around the bounding box
+    const padding = 100;
+    const zoomX = (containerWidth - padding) / width;
+    const zoomY = (containerHeight - padding) / height;
     
-    // Calculate the zoom level needed to fit the bounding box with padding
-    const zoomX = containerWidth / (adjustedWidth + paddingX * 2);
-    const zoomY = containerHeight / (adjustedHeight + paddingY * 2);
+    // Use the smaller zoom level to ensure all POIs are visible
+    const newZoom = Math.min(zoomX, zoomY, 2); // Cap at 2x zoom
     
-    // Use the smaller of the two zoom levels to ensure everything fits
-    // But don't go below the minimum zoom level or above the maximum zoom level
-    const newZoom = Math.max(minZoom, Math.min(Math.min(zoomX, zoomY), 2.0));
+    // Set the new zoom level
+    currentZoom = newZoom;
     
-    // Only change zoom if it's significantly different
-    if (Math.abs(newZoom - currentZoom) > 0.1) {
-      currentZoom = newZoom;
-    }
+    // Center the map on the bounding box
+    mapPosition.x = (containerWidth / 2) - (centerX * currentZoom);
+    mapPosition.y = (containerHeight / 2) - (centerY * currentZoom);
     
-    // Calculate the position to center the bounding box
-    mapPosition = {
-      x: containerWidth / (2 * currentZoom) - centerX,
-      y: containerHeight / (2 * currentZoom) - centerY
-    };
-    
-    // Apply boundary constraints to keep the map inside the viewport
+    // Apply boundary constraints
     applyMapBoundaryConstraints(containerWidth, containerHeight);
+    
     
     updateMapTransform();
     showNotification(`Centered map on ${selectedPois.length} selected POIs`);
@@ -3053,7 +3027,6 @@ function preloadOverlayImages() {
   const heatmapImage = new Image();
   heatmapImage.onload = function() {
     heatmapImagePreloaded = true;
-    console.log('Heatmap image preloaded');
   };
   heatmapImage.src = 'maps/Maynard_Heatmap_Transparent.png';
   
@@ -3061,7 +3034,6 @@ function preloadOverlayImages() {
   const guideImage = new Image();
   guideImage.onload = function() {
     guideImagePreloaded = true;
-    console.log('Guide image preloaded');
   };
   guideImage.src = 'maps/Maynard_Guide_Transparent.png';
 }
