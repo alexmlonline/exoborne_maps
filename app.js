@@ -2995,9 +2995,11 @@ function centerMapOnSelectedPois() {
     let maxY = -Infinity;
     
     // Find the bounds of all selected POIs
+    let validPoisCount = 0;
     selectedPois.forEach(poiId => {
       const poi = pois.find(p => p.id === poiId);
       if (poi) {
+        validPoisCount++;
         const realX = (poi.x / 1.664) + offsetX;
         const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
         
@@ -3007,6 +3009,9 @@ function centerMapOnSelectedPois() {
         maxY = Math.max(maxY, realY);
       }
     });
+    
+    // Only proceed if we have valid POIs to center on
+    if (validPoisCount === 0) return;
     
     // Calculate the center of the bounding box
     const centerX = (minX + maxX) / 2;
@@ -3020,8 +3025,8 @@ function centerMapOnSelectedPois() {
     const containerWidth = $('#map-container').width();
     const containerHeight = $('#map-container').height();
     
-    // Add padding around the bounding box (increased from 100 to 200)
-    const padding = 200;
+    // Add padding around the bounding box (increased from 200 to 300)
+    const padding = 300;
     
     // Ensure we have a minimum size to prevent division by zero or tiny values
     const minSize = 1;
@@ -3033,8 +3038,8 @@ function centerMapOnSelectedPois() {
     const zoomY = (containerHeight - padding) / safeHeight;
     
     // Use the smaller zoom level to ensure all POIs are visible
-    // Reduced the cap from 2 to 1.5 to allow more zoom-out for widely spread POIs
-    const newZoom = Math.min(zoomX, zoomY, 1.5);
+    // Reduced the cap from 1.5 to 1.2 to allow more zoom-out for widely spread POIs
+    const newZoom = Math.min(zoomX, zoomY, 1.2);
     
     // Set the new zoom level
     currentZoom = newZoom;
@@ -3140,7 +3145,7 @@ function applyMapBoundaryConstraints(containerWidth, containerHeight) {
   const isCenteringOnPois = selectedPois.length > 0;
   
   // Allow some extra margin when centering on POIs
-  const extraMargin = isCenteringOnPois ? 0.2 : 0; // 20% extra margin when centering
+  const extraMargin = isCenteringOnPois ? 0.3 : 0; // 30% extra margin when centering (increased from 20%)
   
   // Ensure the map doesn't go beyond the viewport boundaries
   if (MAP_WIDTH * currentZoom < containerWidth) {
