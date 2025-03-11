@@ -1429,6 +1429,14 @@ function renderPois() {
                       font-size="7px" 
                       font-weight="bold" 
                       font-family="Arial">${number}</text>` : ''}`;
+      } else if (poi.type === 'container') {
+        // Clean 3D chest/box icon for Container POIs
+        svgPath = `
+          <!-- Simple chest/box with minimal lines -->
+          <path fill="transparent" 
+                stroke="${poiColor}" 
+                stroke-width="1.5"
+                d="M4,6L12,3L20,6L12,9L4,6Z M4,6L4,18L12,21L12,9 M20,6L20,18L12,21 M8,12L8,14 M16,12L16,14"/>`;
       } else {
         // Default location marker for all other POIs
         svgPath = `<path fill="transparent" 
@@ -1677,7 +1685,7 @@ function showNotification(message, isError = false) {
   notification.fadeIn(300).delay(2000).fadeOut(300);
 }
 
-function toggleGroupVisibility(type, visible, updateUrl = true) {
+function toggleGroupVisibility(type, visible) {
   pois.forEach(poi => {
     if (poi.type === type) {
       poi.visible = visible;
@@ -1685,11 +1693,6 @@ function toggleGroupVisibility(type, visible, updateUrl = true) {
   });
   renderPois();
   savePoisToStorage();
-  
-  // Update URL when group visibility changes, if updateUrl is true
-  if (updateUrl) {
-    updateUrlWithGroups();
-  }
 
   trackEvent('TogglePoiGroup', {
     groupType: type,
@@ -1759,33 +1762,28 @@ function updateUrlWithGroups() {
   let newUrl = window.location.pathname;
   let params = [];
   
-  // If there are selected POIs, we'll only include those in the URL
-  // and ignore group parameters
-  if (selectedPois.length > 0) {
-    // Get the current locations parameter from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentLocations = urlParams.get('locations');
-    
-    // REMOVED: We no longer merge POIs from the URL with the current selection
-    // This was causing the issue where clicking on a POI without Ctrl key
-    // would still add to the previous selection instead of replacing it
-    
-    params.push(`locations=${selectedPois.join(',')}`);
-  } else {
-    // Only include group parameters if no POIs are selected
-    const selectedGroups = [];
-    
-    // Get all checked group checkboxes
-    $('.group-checkbox:checked').each(function() {
-      selectedGroups.push($(this).data('type'));
-    });
-    
-    // Add group parameters
-    if (selectedGroups.length > 0) {
-      selectedGroups.forEach(group => {
-        params.push(`group=${encodeURIComponent(group)}`);
-      });
+  // Always include group parameters regardless of POI selection
+  const selectedGroups = [];
+  
+  // Get all checked group checkboxes
+  $('.group-checkbox:checked').each(function() {
+    const groupType = $(this).data('type');
+    // Ensure no duplicates
+    if (!selectedGroups.includes(groupType)) {
+      selectedGroups.push(groupType);
     }
+  });
+  
+  // Add group parameters
+  if (selectedGroups.length > 0) {
+    selectedGroups.forEach(group => {
+      params.push(`group=${encodeURIComponent(group)}`);
+    });
+  }
+  
+  // If there are selected POIs, include them in the URL as well
+  if (selectedPois.length > 0) {
+    params.push(`locations=${selectedPois.join(',')}`);
   }
   
   // Add any other existing parameters except 'group' and 'locations'
@@ -2263,11 +2261,69 @@ $(document).ready(function () {
     const type = $(this).data('type');
     const checked = $(this).prop('checked');
     
-    // Check if this change was triggered by the Select All or Select None buttons
-    // If it was triggered programmatically and has no originalEvent, don't update the URL
-    const updateUrl = e.originalEvent !== undefined;
+    // Update POI visibility
+    pois.forEach(poi => {
+      if (poi.type === type) {
+        poi.visible = checked;
+      }
+    });
     
-    toggleGroupVisibility(type, checked, updateUrl);
+    renderPois();
+    savePoisToStorage();
+    
+    // Update URL with current group selections
+    let newUrl = window.location.pathname;
+    let groupParams = [];
+    
+    // Get all checked group checkboxes
+    $('.group-checkbox:checked').each(function() {
+      const groupType = $(this).data('type');
+      // Ensure no duplicates
+      if (!groupParams.includes(`group=${encodeURIComponent(groupType)}`)) {
+        groupParams.push(`group=${encodeURIComponent(groupType)}`);
+      }
+    });
+    
+    // If there are group parameters, add them to the URL
+    if (groupParams.length > 0) {
+      newUrl += '?' + groupParams.join('&');
+      
+      // Add any other existing parameters except 'group' and 'locations'
+      const urlParams = new URLSearchParams(window.location.search);
+      let otherParams = [];
+      for (const [key, value] of urlParams.entries()) {
+        if (key !== 'group' && key !== 'locations') {
+          otherParams.push(`${key}=${encodeURIComponent(value)}`);
+        }
+      }
+      
+      // Append other parameters to URL
+      if (otherParams.length > 0) {
+        newUrl += '&' + otherParams.join('&');
+      }
+    } else {
+      // If no groups are selected, just include other parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      let otherParams = [];
+      for (const [key, value] of urlParams.entries()) {
+        if (key !== 'group' && key !== 'locations') {
+          otherParams.push(`${key}=${encodeURIComponent(value)}`);
+        }
+      }
+      
+      // Append other parameters to URL
+      if (otherParams.length > 0) {
+        newUrl += '?' + otherParams.join('&');
+      }
+    }
+    
+    // Update the URL without reloading the page
+    window.history.replaceState({}, document.title, newUrl);
+    
+    trackEvent('TogglePoiGroup', {
+      groupType: type,
+      visible: checked
+    });
   });
 
   // Handle Select All button
@@ -2275,9 +2331,6 @@ $(document).ready(function () {
     // Check all group checkboxes (this will trigger the change event)
     $('.group-checkbox').prop('checked', true).trigger('change');
     
-    // Clear 'group' and 'select' parameters from the URL
-    clearUrlParameters();
-    
     // Clear any selected POIs
     selectedPoi = null;
     selectedPois = [];
@@ -2286,7 +2339,7 @@ $(document).ready(function () {
     $('.poi-group-header').removeClass('highlighted');
     updateSelectionIndicator();
     
-    showNotification('All groups selected, URL parameters cleared');
+    showNotification('All groups selected');
   });
 
   // Handle Select None button
@@ -2294,7 +2347,7 @@ $(document).ready(function () {
     // Uncheck all group checkboxes (this will trigger the change event)
     $('.group-checkbox').prop('checked', false).trigger('change');
     
-    // Clear 'group' and 'select' parameters from the URL
+    // Explicitly clear all group parameters from the URL
     clearUrlParameters();
     
     // Clear any selected POIs
@@ -2305,7 +2358,7 @@ $(document).ready(function () {
     $('.poi-group-header').removeClass('highlighted');
     updateSelectionIndicator();
     
-    showNotification('All groups deselected, URL parameters cleared');
+    showNotification('All groups deselected');
   });
 
   // Handle category "Only" buttons (Money Making, Resources)
@@ -2316,13 +2369,53 @@ $(document).ready(function () {
     const category = $(this).closest('.poi-category');
     
     // Uncheck all checkboxes first
-    $('.group-checkbox').prop('checked', false).trigger('change');
+    $('.group-checkbox').prop('checked', false);
     
     // Check only the checkboxes within this category
-    category.find('.group-checkbox').prop('checked', true).trigger('change');
+    category.find('.group-checkbox').prop('checked', true);
     
-    // Clear 'group' and 'select' parameters from the URL
-    clearUrlParameters();
+    // Update POI visibility based on the checked checkboxes
+    const selectedTypes = [];
+    category.find('.group-checkbox').each(function() {
+      const type = $(this).data('type');
+      selectedTypes.push(type);
+    });
+    
+    pois.forEach(poi => {
+      poi.visible = selectedTypes.includes(poi.type);
+    });
+    
+    renderPois();
+    savePoisToStorage();
+    
+    // Update URL to include all groups in this category
+    let newUrl = window.location.pathname;
+    let groupParams = [];
+    
+    selectedTypes.forEach(type => {
+      groupParams.push(`group=${encodeURIComponent(type)}`);
+    });
+    
+    if (groupParams.length > 0) {
+      newUrl += '?' + groupParams.join('&');
+      
+      // Add any other existing parameters except 'group' and 'locations'
+      const urlParams = new URLSearchParams(window.location.search);
+      let otherParams = [];
+      for (const [key, value] of urlParams.entries()) {
+        if (key !== 'group' && key !== 'locations') {
+          otherParams.push(`${key}=${encodeURIComponent(value)}`);
+        }
+      }
+      
+      // Append other parameters to URL
+      if (otherParams.length > 0) {
+        newUrl += '&' + otherParams.join('&');
+      }
+    }
+    
+    // Update the URL without reloading the page
+    window.history.replaceState({}, document.title, newUrl);
     
     // Clear any selected POIs
     selectedPoi = null;
@@ -2356,7 +2449,7 @@ $(document).ready(function () {
       selectedPois = originalSelectedPois;
     }
     
-    showNotification(`Showing only ${categoryName} POIs, URL parameters cleared`);
+    showNotification(`Showing only ${categoryName} POIs`);
   });
 
   // Handle Select Only buttons
@@ -2370,8 +2463,33 @@ $(document).ready(function () {
     // Check only the selected one
     $(`.group-checkbox[data-type="${selectedType}"]`).prop('checked', true).trigger('change');
     
-    // Clear 'group' and 'select' parameters from the URL
-    clearUrlParameters();
+    // Update POI visibility
+    pois.forEach(poi => {
+      poi.visible = (poi.type === selectedType);
+    });
+    
+    renderPois();
+    savePoisToStorage();
+    
+    // Update URL to include only this group
+    let newUrl = window.location.pathname + `?group=${encodeURIComponent(selectedType)}`;
+    
+    // Add any other existing parameters except 'group' and 'locations'
+    const urlParams = new URLSearchParams(window.location.search);
+    let otherParams = [];
+    for (const [key, value] of urlParams.entries()) {
+      if (key !== 'group' && key !== 'locations') {
+        otherParams.push(`${key}=${encodeURIComponent(value)}`);
+      }
+    }
+    
+    // Append other parameters to URL
+    if (otherParams.length > 0) {
+      newUrl += '&' + otherParams.join('&');
+    }
+    
+    // Update the URL without reloading the page
+    window.history.replaceState({}, document.title, newUrl);
     
     // Clear any selected POIs
     selectedPoi = null;
@@ -2384,7 +2502,7 @@ $(document).ready(function () {
     // Center the map on POIs of the selected type
     centerMapOnPoisOfType(selectedType);
     
-    showNotification(`Showing only ${selectedType} POIs, URL parameters cleared`);
+    showNotification(`Showing only ${selectedType} POIs`);
   });
 
   // Show only POIs of a specific type
@@ -2939,10 +3057,10 @@ function clearUrlParameters() {
   let newUrl = window.location.pathname;
   let params = [];
   
-  // Add any other existing parameters except 'group' and 'locations'
+  // Add any other existing parameters except 'group', 'locations', and 'select'
   const urlParams = new URLSearchParams(window.location.search);
   for (const [key, value] of urlParams.entries()) {
-    if (key !== 'group' && key !== 'locations') {
+    if (key !== 'group' && key !== 'locations' && key !== 'select') {
       params.push(`${key}=${encodeURIComponent(value)}`);
     }
   }
@@ -3483,4 +3601,50 @@ function showDuplicateConfirmModalForContext(nearbyPois, mapX, mapY, type, callb
       $(document).off('keydown.duplicateModal');
     }
   });
+}
+
+// Function to convert hex color to RGB
+function hexToRgb(hex) {
+  // Remove the hash if it exists
+  hex = hex.replace(/^#/, '');
+  
+  // Parse the hex values
+  let bigint = parseInt(hex, 16);
+  let r = (bigint >> 16) & 255;
+  let g = (bigint >> 8) & 255;
+  let b = bigint & 255;
+  
+  return { r, g, b };
+}
+
+// Function to lighten a color by a percentage
+function lightenColor(hex, percent) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  
+  // Calculate the lighter values
+  const lighter = {
+    r: Math.min(255, Math.floor(rgb.r + (255 - rgb.r) * (percent / 100))),
+    g: Math.min(255, Math.floor(rgb.g + (255 - rgb.g) * (percent / 100))),
+    b: Math.min(255, Math.floor(rgb.b + (255 - rgb.b) * (percent / 100)))
+  };
+  
+  // Convert back to hex
+  return `#${(1 << 24 | lighter.r << 16 | lighter.g << 8 | lighter.b).toString(16).slice(1)}`;
+}
+
+// Function to darken a color by a percentage
+function darkenColor(hex, percent) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  
+  // Calculate the darker values
+  const darker = {
+    r: Math.max(0, Math.floor(rgb.r * (1 - percent / 100))),
+    g: Math.max(0, Math.floor(rgb.g * (1 - percent / 100))),
+    b: Math.max(0, Math.floor(rgb.b * (1 - percent / 100)))
+  };
+  
+  // Convert back to hex
+  return `#${(1 << 24 | darker.r << 16 | darker.g << 8 | darker.b).toString(16).slice(1)}`;
 }
