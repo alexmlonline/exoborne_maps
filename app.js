@@ -663,20 +663,30 @@ function savePoi() {
   // Check for nearby POIs one last time
   const nearbyPois = checkForNearbyPois(numX, numY, type);
   if (nearbyPois.length > 0) {
-    // Ask for confirmation before saving
-    if (!confirm(`Warning: There ${nearbyPois.length === 1 ? 'is' : 'are'} ${nearbyPois.length} similar POI${nearbyPois.length === 1 ? '' : 's'} nearby. Are you sure you want to add this POI?`)) {
-      return;
-    }
+    // Show custom confirmation modal
+    showDuplicateConfirmModal(nearbyPois, type, function(confirmed) {
+      if (confirmed) {
+        // User confirmed, proceed with saving
+        createAndSavePoi(type, numX, numY, description);
+      }
+      // If not confirmed, do nothing
+    });
+  } else {
+    // No nearby POIs, proceed with saving
+    createAndSavePoi(type, numX, numY, description);
   }
-  
+}
+
+// Helper function to create and save a POI
+function createAndSavePoi(type, x, y, description) {
   // Create a new POI object
   const newPoi = {
     id: 'poi-' + Date.now(),
     name: `POI-${Date.now().toString().slice(-4)}`,
     type: type,
     description: description,
-    x: numX,
-    y: numY,
+    x: x,
+    y: y,
     visible: true,
     approved: false,
     dateAdded: new Date().toISOString(),
@@ -1150,12 +1160,22 @@ function saveContextMenuPoi() {
   // Check for nearby POIs one last time
   const nearbyPois = checkForNearbyPois(mapX, mapY, type);
   if (nearbyPois.length > 0) {
-    // Ask for confirmation before saving
-    if (!confirm(`Warning: There ${nearbyPois.length === 1 ? 'is' : 'are'} ${nearbyPois.length} similar POI${nearbyPois.length === 1 ? '' : 's'} nearby. Are you sure you want to add this POI?`)) {
-      return;
-    }
+    // Show custom confirmation modal
+    showDuplicateConfirmModalForContext(nearbyPois, mapX, mapY, type, function(confirmed) {
+      if (confirmed) {
+        // User confirmed, proceed with saving
+        createAndSaveContextPoi(type, mapX, mapY, description, name);
+      }
+      // If not confirmed, do nothing
+    });
+  } else {
+    // No nearby POIs, proceed with saving
+    createAndSaveContextPoi(type, mapX, mapY, description, name);
   }
+}
 
+// Helper function to create and save a POI from context menu
+function createAndSaveContextPoi(type, mapX, mapY, description, name) {
   const poi = {
     id: 'poi-' + Date.now(),
     name: name,
@@ -1176,7 +1196,7 @@ function saveContextMenuPoi() {
   // Send unapproved POI to server
   saveUnapprovedPoi(poi);
   
-  contextMenu.hide();
+  $('#context-menu').hide();
   
   // Select the new POI after adding it
   selectPoi(poi.id);
@@ -3216,24 +3236,24 @@ function checkNearbyPoisFromForm() {
     let message = `<strong>Warning:</strong> Found ${nearbyPois.length} ${type} POI${nearbyPois.length > 1 ? 's' : ''} nearby:`;
     
     // Add details for each nearby POI
-    message += '<ul style="margin: 5px 0; padding-left: 20px;">';
+    message += '<ul>';
     nearbyPois.forEach(poi => {
       const distance = Math.sqrt(
         Math.pow(poi.x - numX, 2) + 
         Math.pow(poi.y - numY, 2)
       ).toFixed(1);
       
-      message += `<li>At X: ${formatCoordinate(poi.x)}, Y: ${formatCoordinate(poi.y)} (${distance} units away)`;
+      message += `<li>At X: <span style="color: #ffd700">${formatCoordinate(poi.x)}</span>, Y: <span style="color: #ffd700">${formatCoordinate(poi.y)}</span> <span style="color: #aaa">(${distance} units away)</span>`;
       if (poi.description) {
-        message += ` - "${poi.description.substring(0, 30)}${poi.description.length > 30 ? '...' : ''}"`;
+        message += `<br><span style="color: #ccc; font-style: italic; margin-left: 5px;">${poi.description.substring(0, 40)}${poi.description.length > 40 ? '...' : ''}</span>`;
       }
       message += '</li>';
     });
     message += '</ul>';
-    message += 'Please check if this is a duplicate before saving.';
+    message += '<div style="margin-top: 5px;">Please check if this is a duplicate before saving.</div>';
     
-    // Show warning
-    warningEl.html(message).show();
+    // Show warning with fade-in effect
+    warningEl.html(message).fadeIn(300);
   }
 }
 
@@ -3253,23 +3273,137 @@ function checkNearbyPoisFromContext(mapX, mapY, type) {
     let message = `<strong>Warning:</strong> Found ${nearbyPois.length} ${type} POI${nearbyPois.length > 1 ? 's' : ''} nearby:`;
     
     // Add details for each nearby POI
-    message += '<ul style="margin: 5px 0; padding-left: 20px;">';
+    message += '<ul>';
     nearbyPois.forEach(poi => {
       const distance = Math.sqrt(
         Math.pow(poi.x - mapX, 2) + 
         Math.pow(poi.y - mapY, 2)
       ).toFixed(1);
       
-      message += `<li>At X: ${formatCoordinate(poi.x)}, Y: ${formatCoordinate(poi.y)} (${distance} units away)`;
+      message += `<li>At X: <span style="color: #ffd700">${formatCoordinate(poi.x)}</span>, Y: <span style="color: #ffd700">${formatCoordinate(poi.y)}</span> <span style="color: #aaa">(${distance} units away)</span>`;
       if (poi.description) {
-        message += ` - "${poi.description.substring(0, 30)}${poi.description.length > 30 ? '...' : ''}"`;
+        message += `<br><span style="color: #ccc; font-style: italic; margin-left: 5px;">${poi.description.substring(0, 40)}${poi.description.length > 40 ? '...' : ''}</span>`;
       }
       message += '</li>';
     });
     message += '</ul>';
-    message += 'Please check if this is a duplicate before saving.';
+    message += '<div style="margin-top: 5px;">Please check if this is a duplicate before saving.</div>';
     
-    // Show warning
-    warningEl.html(message).show();
+    // Show warning with fade-in effect
+    warningEl.html(message).fadeIn(300);
   }
+}
+
+// Function to show duplicate POI confirmation modal
+function showDuplicateConfirmModal(nearbyPois, type, callback) {
+  // Create warning message
+  let message = `<strong>Warning:</strong> Found ${nearbyPois.length} ${type} POI${nearbyPois.length > 1 ? 's' : ''} nearby:`;
+  
+  // Add details for each nearby POI
+  message += '<ul>';
+  nearbyPois.forEach(poi => {
+    const distance = Math.sqrt(
+      Math.pow(poi.x - parseFloat($('#poi-x').val().replace(/^\+/, '')), 2) + 
+      Math.pow(poi.y - parseFloat($('#poi-y').val().replace(/^\+/, '')), 2)
+    ).toFixed(1);
+    
+    message += `<li>At X: ${formatCoordinate(poi.x)}, Y: ${formatCoordinate(poi.y)} (${distance} units away)`;
+    if (poi.description) {
+      message += ` - "${poi.description.substring(0, 30)}${poi.description.length > 30 ? '...' : ''}"`;
+    }
+    message += '</li>';
+  });
+  message += '</ul>';
+  message += 'This may be a duplicate of an existing POI.';
+  
+  // Set the warning message
+  $('#duplicate-modal-warning').html(message);
+  
+  // Show the modal
+  $('#duplicate-confirm-modal').css('display', 'block');
+  
+  // Set up event handlers
+  $('#duplicate-confirm-btn').off('click').on('click', function() {
+    $('#duplicate-confirm-modal').css('display', 'none');
+    if (callback) callback(true);
+  });
+  
+  $('#duplicate-cancel-btn, #duplicate-modal-close').off('click').on('click', function() {
+    $('#duplicate-confirm-modal').css('display', 'none');
+    if (callback) callback(false);
+  });
+  
+  // Close when clicking outside the modal content
+  $('#duplicate-confirm-modal').off('click').on('click', function(event) {
+    if (event.target === this) {
+      $('#duplicate-confirm-modal').css('display', 'none');
+      if (callback) callback(false);
+    }
+  });
+  
+  // Close with Escape key
+  $(document).off('keydown.duplicateModal').on('keydown.duplicateModal', function(event) {
+    if (event.key === 'Escape' && $('#duplicate-confirm-modal').css('display') === 'block') {
+      $('#duplicate-confirm-modal').css('display', 'none');
+      if (callback) callback(false);
+      $(document).off('keydown.duplicateModal');
+    }
+  });
+}
+
+// Function to show duplicate POI confirmation modal for context menu
+function showDuplicateConfirmModalForContext(nearbyPois, mapX, mapY, type, callback) {
+  // Create warning message
+  let message = `<strong>Warning:</strong> Found ${nearbyPois.length} ${type} POI${nearbyPois.length > 1 ? 's' : ''} nearby:`;
+  
+  // Add details for each nearby POI
+  message += '<ul>';
+  nearbyPois.forEach(poi => {
+    const distance = Math.sqrt(
+      Math.pow(poi.x - mapX, 2) + 
+      Math.pow(poi.y - mapY, 2)
+    ).toFixed(1);
+    
+    message += `<li>At X: ${formatCoordinate(poi.x)}, Y: ${formatCoordinate(poi.y)} (${distance} units away)`;
+    if (poi.description) {
+      message += ` - "${poi.description.substring(0, 30)}${poi.description.length > 30 ? '...' : ''}"`;
+    }
+    message += '</li>';
+  });
+  message += '</ul>';
+  message += 'This may be a duplicate of an existing POI.';
+  
+  // Set the warning message
+  $('#duplicate-modal-warning').html(message);
+  
+  // Show the modal
+  $('#duplicate-confirm-modal').css('display', 'block');
+  
+  // Set up event handlers
+  $('#duplicate-confirm-btn').off('click').on('click', function() {
+    $('#duplicate-confirm-modal').css('display', 'none');
+    if (callback) callback(true);
+  });
+  
+  $('#duplicate-cancel-btn, #duplicate-modal-close').off('click').on('click', function() {
+    $('#duplicate-confirm-modal').css('display', 'none');
+    if (callback) callback(false);
+  });
+  
+  // Close when clicking outside the modal content
+  $('#duplicate-confirm-modal').off('click').on('click', function(event) {
+    if (event.target === this) {
+      $('#duplicate-confirm-modal').css('display', 'none');
+      if (callback) callback(false);
+    }
+  });
+  
+  // Close with Escape key
+  $(document).off('keydown.duplicateModal').on('keydown.duplicateModal', function(event) {
+    if (event.key === 'Escape' && $('#duplicate-confirm-modal').css('display') === 'block') {
+      $('#duplicate-confirm-modal').css('display', 'none');
+      if (callback) callback(false);
+      $(document).off('keydown.duplicateModal');
+    }
+  });
 }

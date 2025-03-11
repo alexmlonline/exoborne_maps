@@ -338,6 +338,26 @@
   <div class="notification" id="notification"></div>
   <div id="context-menu"></div>
 
+  <!-- Duplicate POI Confirmation Modal -->
+  <div id="duplicate-confirm-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Duplicate POI Warning</h2>
+        <button class="modal-close" id="duplicate-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="warning-message" id="duplicate-modal-warning">
+          <!-- Warning content will be inserted here dynamically -->
+        </div>
+        <p class="modal-question">Are you sure you want to add this POI?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="duplicate-confirm-btn" class="confirm-btn">Add Anyway</button>
+        <button id="duplicate-cancel-btn" class="cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Other Loot Modal -->
   <div id="other-loot-modal">
     <div class="modal-content">
