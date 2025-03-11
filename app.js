@@ -639,167 +639,52 @@ const formatCoordinateForStorage = (value) => {
 };
 
 function savePoi() {
-  const poiType = $('#poi-type').val().trim();
-  const poiColor = getPoiColor(poiType);
-  const manualX = $('#poi-x').val().trim();
-  const manualY = $('#poi-y').val().trim();
+  // Get values from form
+  const type = $('#poi-type').val();
+  const x = $('#poi-x').val();
+  const y = $('#poi-y').val();
+  const description = $('#poi-desc').val().trim();
   
-  try {
-    
-    // Check if coordinates were manually entered
-    if (manualX && manualY) {
-      // Create POI with manually entered coordinates
-      const poi = {
-        id: 'poi-' + Date.now(),
-        name: poiType.charAt(0).toUpperCase() + poiType.slice(1),
-        type: poiType,
-        description: $('#poi-desc').val().trim(),
-        x: manualX.startsWith('+') || manualX.startsWith('-') ? manualX : '+' + manualX,
-        y: manualY.startsWith('+') || manualY.startsWith('-') ? manualY : '+' + manualY,
-        visible: true,
-        approved: false,
-        dateAdded: new Date().toISOString(),
-        sessionId: sessionId // Add session ID to track who created this POI
-      };
-      
-      pois.push(poi);
-      renderPois();
-      savePoisToStorage();
-      
-      // Send unapproved POI to server
-      saveUnapprovedPoi(poi);
-      
-      // Check if we have multiple POIs selected in the URL
-      const manualParams = getUrlParameters();
-      if (manualParams.select && manualParams.select.split(',').length > 1) {
-        // Add the new POI to the selected POIs list
-        selectedPois.push(poi.id);
-        selectedPoi = poi.id; // Make the new POI the primary selection
-        
-        // Update the URL with the new selection
-        updateUrlWithSelection();
-        
-        // Ensure the new POI is visible
-        poi.visible = true;
-        
-        // Update the visual state of the POI marker
-        const marker = $(`.poi-marker[data-id="${poi.id}"]`);
-        marker.addClass('selected');
-        
-        // Apply styling to the marker
-        const poiColor = getPoiColor(poi.type);
-        const colorValues = hexToRgb(poiColor);
-        if (colorValues) {
-          marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
-          marker.css('--poi-stroke-color', poiColor);
-          marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
-        }
-        
-        // Update selection indicator
-        updateSelectionIndicator();
-        
-        showNotification('POI added and selected (awaiting approval)');
-      } else {
-        showNotification('POI added successfully (awaiting approval)');
-      }
-      
-      // Reset form and exit add mode
-      $('#poi-form').hide();
-      $('#poi-desc').val('');
-      $('#poi-x').val('');
-      $('#poi-y').val('');
-      tempPoi = null;
-      addMode = false;
-      $('#add-mode-btn').removeClass('active');
-      $('#game-map').css('cursor', 'default');
-      
-      // Hide the context menu
-      $('#context-menu').hide();
-      
+  // Validate inputs
+  if (!x || !y) {
+    showNotification('Please enter both X and Y coordinates', true);
+    return;
+  }
+  
+  // Convert coordinates to numbers (removing + sign if present)
+  const numX = parseFloat(x.replace(/^\+/, ''));
+  const numY = parseFloat(y.replace(/^\+/, ''));
+  
+  if (isNaN(numX) || isNaN(numY)) {
+    showNotification('Invalid coordinates. Please enter valid numbers.', true);
+    return;
+  }
+  
+  // Check for nearby POIs one last time
+  const nearbyPois = checkForNearbyPois(numX, numY, type);
+  if (nearbyPois.length > 0) {
+    // Ask for confirmation before saving
+    if (!confirm(`Warning: There ${nearbyPois.length === 1 ? 'is' : 'are'} ${nearbyPois.length} similar POI${nearbyPois.length === 1 ? '' : 's'} nearby. Are you sure you want to add this POI?`)) {
       return;
     }
-    
-    // If no manual coordinates, use the tempPoi from map click
-    if (!tempPoi) return;
-
-    // Calculate adjusted coordinates for saving
-    const adjustedX = (tempPoi.x - offsetX) * 1.664;
-    const adjustedY = (tempPoi.y - offsetY) * 1.664;
-
-    const poi = {
-      id: 'poi-' + Date.now(),
-      name: tempPoi.name,
-      type: poiType,
-      description: $('#poi-desc').val().trim(),
-      x: formatCoordinateForStorage(adjustedX),
-      y: formatCoordinateForStorage(adjustedY),
-      visible: true,
-      approved: false, // Mark new POIs as unapproved
-      dateAdded: new Date().toISOString(),
-      sessionId: sessionId // Add session ID to track who created this POI
-    };
-
-    pois.push(poi);
-    renderPois();
-    savePoisToStorage();
-    
-    // Send unapproved POI to server
-    saveUnapprovedPoi(poi);
-
-    // Check if we have multiple POIs selected in the URL
-    const manualParams = getUrlParameters();
-    if (manualParams.select && manualParams.select.split(',').length > 1) {
-      // Add the new POI to the selected POIs list
-      selectedPois.push(poi.id);
-      selectedPoi = poi.id; // Make the new POI the primary selection
-      
-      // Update the URL with the new selection
-      updateUrlWithSelection();
-      
-      // Ensure the new POI is visible
-      poi.visible = true;
-      
-      // Update the visual state of the POI marker
-      const marker = $(`.poi-marker[data-id="${poi.id}"]`);
-      marker.addClass('selected');
-      
-      // Apply styling to the marker
-      const poiColor = getPoiColor(poi.type);
-      const colorValues = hexToRgb(poiColor);
-      if (colorValues) {
-        marker.css('--poi-glow-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.8)`);
-        marker.css('--poi-stroke-color', poiColor);
-        marker.css('--poi-fill-color', `rgba(${colorValues.r}, ${colorValues.g}, ${colorValues.b}, 0.2)`);
-      }
-      
-      // Update selection indicator
-      updateSelectionIndicator();
-      
-      showNotification('POI added and selected (awaiting approval)');
-    } else {
-      showNotification('POI added successfully (awaiting approval)');
-    }
-
-    // Reset form and add mode
-    $('#poi-form').hide();
-    tempPoi = null;
-    addMode = false;
-    $('#add-mode-btn').removeClass('active');
-    $('#game-map').css('cursor', 'default');
-
-    // Hide the context menu
-    $('#context-menu').hide();
-    trackEvent('SavePOI', {
-      poiType: poiType,
-      x: manualX,
-      y: manualY,
-      coordinates: `${x},${y}`
-  });
-// ... rest of the function ...
-  } catch (error) {
-    trackError(error, { action: 'SavePOI' });
-    throw error;
   }
+  
+  // Create a new POI object
+  const newPoi = {
+    id: 'poi-' + Date.now(),
+    name: `POI-${Date.now().toString().slice(-4)}`,
+    type: type,
+    description: description,
+    x: numX,
+    y: numY,
+    visible: true,
+    approved: false,
+    dateAdded: new Date().toISOString(),
+    sessionId: sessionId
+  };
+  
+  // Save the POI
+  saveUnapprovedPoi(newPoi);
 }
 
 function cancelAddPoi() {
@@ -1131,63 +1016,73 @@ function approvePoi(poiId) {
 
 // Context menu functions and saving/editing POIs
 function showContextMenu(screenX, screenY, mapX, mapY) {
-  // Clear the selectedPoi to indicate we're creating a new POI
-  selectedPoi = null;
+  // Create context menu if it doesn't exist
+  if ($('#context-menu').length === 0) {
+    $('body').append('<div id="context-menu"></div>');
+  }
   
-  const contextMenu = $('#context-menu');
-  updateContextMenuHtml();
-
-  // Get dimensions
-  const menuWidth = contextMenu.outerWidth();
-  const menuHeight = contextMenu.outerHeight();
-  const windowWidth = $(window).width();
-  const windowHeight = $(window).height();
-
-  // Calculate position to keep menu within viewport
-  let posX = screenX;
-  let posY = screenY;
-
-  // Adjust X position if menu would go off screen
-  if (screenX + menuWidth > windowWidth) {
-    posX = windowWidth - menuWidth - 10; // 10px padding from edge
-  }
-  if (screenX < 0) {
-    posX = 10;
-  }
-
-  // Adjust Y position if menu would go off screen
-  if (screenY + menuHeight > windowHeight) {
-    posY = windowHeight - menuHeight - 10;
-  }
-  if (screenY < 0) {
-    posY = 10;
-  }
-
-  $('#context-poi-type').val('shelter');
-  $('#context-poi-note').val('');
-  $('#context-delete-btn').hide();
-
-  // Update coordinates display
-  $('#context-coordinates').text(`X: ${formatCoordinate(mapX)}, Y: ${formatCoordinate(mapY)}`);
-
-  $('#context-poi-type').css('color', getPoiColor($('#context-poi-type').val()));
-
-  const adjustedX = (mapX - offsetX) * 1.664;
-  const adjustedY = (mapY - offsetY - MAP_HEIGHT) * 1.664;
-
-  contextMenu.data('map-x', adjustedX);
-  contextMenu.data('map-y', adjustedY);
-
-  contextMenu.css({
-    top: posY + 'px',
-    left: posX + 'px'
-  }).show();
-
-  // Event handlers are now set in updateContextMenuHtml
+  // Update context menu HTML
+  $('#context-menu').html(`
+    <div class="context-menu-form">
+      <div class="context-menu-field">
+        <label for="context-poi-type">Type:</label>
+        <select id="context-poi-type">
+          <option value="shelter">Rebirth Shelter</option>
+          <option value="bunker">Rebirth Bunker</option>
+          <option value="fragment">Clearance Fragment</option>
+          <option value="machinery">Machinery Parts</option>
+          <option value="electronics">Electronics</option>
+          <option value="secret">Secret</option>
+          <option value="ec-kits">EC Kits</option>
+          <option value="collectibles">Collectibles</option>
+          <option value="loot">Loot</option>
+          <option value="container">Locked Containers</option>
+          <option value="respawn">Respawn</option>
+          <option value="distilleries">Botkin Distilleries</option>
+          <option value="emp-jammer">EMP Jammer</option>
+        </select>
+      </div>
+      <div class="context-menu-field">
+        <label for="context-poi-desc">Note:</label>
+        <textarea id="context-poi-desc" placeholder="Add a note about this POI (shown on hover)"></textarea>
+      </div>
+      <div id="context-nearby-warning" class="warning-message" style="display: none;"></div>
+      <div class="context-menu-buttons">
+        <button id="context-save-btn">Save</button>
+        <button id="context-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  `);
   
-  contextMenu.off('click').on('click', function (e) {
-    e.stopPropagation();
+  // Position context menu
+  $('#context-menu').css({
+    display: 'block',
+    left: screenX + 'px',
+    top: screenY + 'px'
   });
+  
+  // Set coordinates in the form
+  $('#context-coordinates').text(`X: ${formatCoordinate(mapX)}, Y: ${formatCoordinate(mapY)}`);
+  
+  // Check for nearby POIs when type changes
+  $('#context-poi-type').on('change', function() {
+    checkNearbyPoisFromContext(mapX, mapY, $(this).val());
+  });
+  
+  // Initial check for nearby POIs
+  checkNearbyPoisFromContext(mapX, mapY, $('#context-poi-type').val());
+  
+  // Save button click handler
+  $('#context-save-btn').on('click', saveContextMenuPoi);
+  
+  // Cancel button click handler
+  $('#context-cancel-btn').on('click', function() {
+    $('#context-menu').hide();
+  });
+  
+  // Store map coordinates in the context menu data
+  $('#context-menu').data('mapX', mapX);
+  $('#context-menu').data('mapY', mapY);
 }
 
 function showEditContextMenu(poiId, screenX, screenY) {
@@ -1245,24 +1140,33 @@ function showEditContextMenu(poiId, screenX, screenY) {
 // Update context menu POI saving logic
 function saveContextMenuPoi() {
   const contextMenu = $('#context-menu');
-  const mapX = contextMenu.data('map-x');
-  const mapY = contextMenu.data('map-y');
+  const mapX = contextMenu.data('mapX');
+  const mapY = contextMenu.data('mapY');
 
   const name = `POI-${Date.now().toString().slice(-4)}`;
-  const type = document.getElementById('context-poi-type').value;
-  const description = $('#context-poi-note').val().trim();
+  const type = $('#context-poi-type').val();
+  const description = $('#context-poi-desc').val().trim();
+
+  // Check for nearby POIs one last time
+  const nearbyPois = checkForNearbyPois(mapX, mapY, type);
+  if (nearbyPois.length > 0) {
+    // Ask for confirmation before saving
+    if (!confirm(`Warning: There ${nearbyPois.length === 1 ? 'is' : 'are'} ${nearbyPois.length} similar POI${nearbyPois.length === 1 ? '' : 's'} nearby. Are you sure you want to add this POI?`)) {
+      return;
+    }
+  }
 
   const poi = {
-      id: 'poi-' + Date.now(),
-      name: name,
-      type: type,
-      description: description,
-      x: formatCoordinateForStorage(mapX),
-      y: formatCoordinateForStorage(mapY),
-      visible: true,
-      approved: false, // Mark new POIs as unapproved
-      dateAdded: new Date().toISOString(),
-      sessionId: sessionId // Add session ID to track who created this POI
+    id: 'poi-' + Date.now(),
+    name: name,
+    type: type,
+    description: description,
+    x: mapX,
+    y: mapY,
+    visible: true,
+    approved: false, // Mark new POIs as unapproved
+    dateAdded: new Date().toISOString(),
+    sessionId: sessionId // Add session ID to track who created this POI
   };
 
   // Add to local array temporarily
@@ -2163,14 +2067,32 @@ $(document).ready(function () {
   // Initialize the map
   initMap();
   
-  // Load POIs from storage
-  loadPoisFromStorage();
+  // Initialize session ID
+  initSessionId();
   
-  // Load POIs from server
-  syncWithServer().then(() => {
-    // Additional actions after sync if needed
-  });
+  // Load POIs from storage first (faster)
+  if (!loadPoisFromStorage()) {
+    // If loading from storage fails, load from file
+    loadPoisFromFile();
+  } else {
+    // If loading from storage succeeds, still sync with server
+    renderPois();
+    syncWithServer();
+  }
   
+  // Check for URL parameters
+  checkUrlParameters();
+  
+  // Preload overlay images
+  preloadOverlayImages();
+  
+  // Add event handlers for coordinate inputs to check for nearby POIs
+  $('#poi-x, #poi-y').on('input', checkNearbyPoisFromForm);
+  $('#poi-type').on('change', checkNearbyPoisFromForm);
+  
+  // Add event handlers for map interactions
+  // ... rest of the existing code
+
   // Update groups from URL parameters
   updateGroupsFromUrl();
   
@@ -3236,4 +3158,118 @@ function closeOtherLootModal() {
   
   // Remove loot parameter from URL
   updateUrlWithLootParam(false);
+}
+
+// Function to check for nearby POIs of the same type
+function checkForNearbyPois(x, y, type, radius = 10) {
+  // Convert coordinates to numbers to ensure proper comparison
+  const numX = parseFloat(x);
+  const numY = parseFloat(y);
+  
+  if (isNaN(numX) || isNaN(numY)) return [];
+  
+  // Find POIs of the same type within the specified radius
+  const nearbyPois = pois.filter(poi => {
+    // Only check POIs of the same type
+    if (poi.type !== type) return false;
+    
+    // Calculate distance using Euclidean distance formula
+    const distance = Math.sqrt(
+      Math.pow(poi.x - numX, 2) + 
+      Math.pow(poi.y - numY, 2)
+    );
+    
+    // Return true if the POI is within the radius
+    return distance <= radius;
+  });
+  
+  return nearbyPois;
+}
+
+// Function to check for nearby POIs based on form inputs
+function checkNearbyPoisFromForm() {
+  // Get values from form
+  const x = $('#poi-x').val();
+  const y = $('#poi-y').val();
+  const type = $('#poi-type').val();
+  
+  // Clear any existing warning
+  $('#nearby-poi-warning').hide().empty();
+  
+  // Only proceed if both coordinates are entered
+  if (!x || !y || x.length < 2 || y.length < 2) {
+    return;
+  }
+  
+  // Convert coordinates to numbers (removing + sign if present)
+  const numX = parseFloat(x.replace(/^\+/, ''));
+  const numY = parseFloat(y.replace(/^\+/, ''));
+  
+  // Check for nearby POIs
+  const nearbyPois = checkForNearbyPois(numX, numY, type);
+  
+  // If nearby POIs found, show warning
+  if (nearbyPois.length > 0) {
+    const warningEl = $('#nearby-poi-warning');
+    
+    // Create warning message
+    let message = `<strong>Warning:</strong> Found ${nearbyPois.length} ${type} POI${nearbyPois.length > 1 ? 's' : ''} nearby:`;
+    
+    // Add details for each nearby POI
+    message += '<ul style="margin: 5px 0; padding-left: 20px;">';
+    nearbyPois.forEach(poi => {
+      const distance = Math.sqrt(
+        Math.pow(poi.x - numX, 2) + 
+        Math.pow(poi.y - numY, 2)
+      ).toFixed(1);
+      
+      message += `<li>At X: ${formatCoordinate(poi.x)}, Y: ${formatCoordinate(poi.y)} (${distance} units away)`;
+      if (poi.description) {
+        message += ` - "${poi.description.substring(0, 30)}${poi.description.length > 30 ? '...' : ''}"`;
+      }
+      message += '</li>';
+    });
+    message += '</ul>';
+    message += 'Please check if this is a duplicate before saving.';
+    
+    // Show warning
+    warningEl.html(message).show();
+  }
+}
+
+// Function to check for nearby POIs from context menu
+function checkNearbyPoisFromContext(mapX, mapY, type) {
+  // Clear any existing warning
+  $('#context-nearby-warning').hide().empty();
+  
+  // Check for nearby POIs
+  const nearbyPois = checkForNearbyPois(mapX, mapY, type);
+  
+  // If nearby POIs found, show warning
+  if (nearbyPois.length > 0) {
+    const warningEl = $('#context-nearby-warning');
+    
+    // Create warning message
+    let message = `<strong>Warning:</strong> Found ${nearbyPois.length} ${type} POI${nearbyPois.length > 1 ? 's' : ''} nearby:`;
+    
+    // Add details for each nearby POI
+    message += '<ul style="margin: 5px 0; padding-left: 20px;">';
+    nearbyPois.forEach(poi => {
+      const distance = Math.sqrt(
+        Math.pow(poi.x - mapX, 2) + 
+        Math.pow(poi.y - mapY, 2)
+      ).toFixed(1);
+      
+      message += `<li>At X: ${formatCoordinate(poi.x)}, Y: ${formatCoordinate(poi.y)} (${distance} units away)`;
+      if (poi.description) {
+        message += ` - "${poi.description.substring(0, 30)}${poi.description.length > 30 ? '...' : ''}"`;
+      }
+      message += '</li>';
+    });
+    message += '</ul>';
+    message += 'Please check if this is a duplicate before saving.';
+    
+    // Show warning
+    warningEl.html(message).show();
+  }
 }

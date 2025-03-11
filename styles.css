@@ -438,14 +438,14 @@
   }
   
   #poi-form textarea {
-    resize: vertical;
     height: 80px;
+    resize: vertical;
   }
   
   #poi-form label {
     display: block;
+    margin-top: 10px;
     margin-bottom: 5px;
-    font-weight: bold;
   }
   
   #poi-form button {
@@ -1234,5 +1234,15 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     animation: none;
+  }
+  
+  .warning-message {
+    background-color: rgba(255, 200, 0, 0.2);
+    border-left: 3px solid #ffc800;
+    color: #f0f0f0;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 13px;
+    border-radius: 2px;
   }
   
