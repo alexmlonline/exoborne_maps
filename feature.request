@@ -4,8 +4,6 @@ bodkin distilleries (a quest)
 enable basic search agains description
 add new maps
 fix zooming to map size when selecting groups
-fix that approved POI doesn't save the notes (at least doesn't remove them)
-
 
 DONE
 ==========
@@ -18,4 +16,4 @@ added maps caching
 fix an exception that is shown when I save comments for approved POI as an admin
 render charges and tier inside pin
 when clicking on POIs selected, select by default the group they belong to
-
+fix that approved POI doesn't save the notes (at least doesn't remove them)

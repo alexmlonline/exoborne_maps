@@ -397,6 +397,22 @@ function loadPoisFromFile() {
     // Convert map back to array
     pois = Array.from(poiMap.values());
     
+    // Check if we need to restore the "show unapproved only" state
+    if (window.preserveUnapprovedOnly) {
+      // Set visibility for POIs - only show unapproved
+      pois.forEach(poi => {
+        poi.visible = !poi.approved;
+      });
+      
+      // Uncheck all group checkboxes to reflect that we're not using the normal filtering
+      $('.group-checkbox').prop('checked', false);
+      
+      // Clear the flag
+      window.preserveUnapprovedOnly = false;
+      
+      showNotification('Showing only unapproved POIs');
+    }
+    
     // Only render POIs if we're not skipping rendering
     if (!skipRendering) {
       console.log("loadPoisFromFile: rendering POIs, addMode =", addMode);
@@ -412,7 +428,10 @@ function loadPoisFromFile() {
     showNotification(`Loaded ${pois.length} POIs successfully`);
     
     // Update groups from URL after POIs are loaded
-    updateGroupsFromUrl();
+    // Only do this if we're not showing only unapproved POIs
+    if (!window.preserveUnapprovedOnly) {
+      updateGroupsFromUrl();
+    }
     
     // Process URL selected POIs after POIs are loaded
     processUrlSelectedPois();
@@ -1032,6 +1051,9 @@ function approvePoi(poiId) {
       return;
     }
 
+    // Check if we're currently showing only unapproved POIs
+    const showingOnlyUnapproved = pois.some(p => p.approved && !p.visible);
+
     // Create a copy of the POI with approved status
     const approvedPoi = { 
       ...poi, 
@@ -1075,6 +1097,8 @@ function approvePoi(poiId) {
         showNotification('POI approved successfully');
         
         // Refresh POIs from server to ensure we have the latest data
+        // Store the showingOnlyUnapproved state before reloading
+        window.preserveUnapprovedOnly = showingOnlyUnapproved;
         loadPoisFromFile();
       } else {
         showNotification('Error approving POI: ' + (data.error || 'Unknown error'), true);
@@ -1095,7 +1119,6 @@ function approvePoi(poiId) {
     trackEvent('ApprovePOI', {
       poiId: poiId
     });
-  // ... rest of the function ...
   } catch (error) {
     trackError(error, { action: 'ApprovePOI', poiId });
     throw error;
