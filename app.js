@@ -1430,13 +1430,15 @@ function renderPois() {
                       font-weight="bold" 
                       font-family="Arial">${number}</text>` : ''}`;
       } else if (poi.type === 'container') {
-        // Clean 3D chest/box icon for Container POIs
-        svgPath = `
-          <!-- Simple chest/box with minimal lines -->
-          <path fill="transparent" 
-                stroke="${poiColor}" 
-                stroke-width="1.5"
-                d="M4,6L12,3L20,6L12,9L4,6Z M4,6L4,18L12,21L12,9 M20,6L20,18L12,21 M8,12L8,14 M16,12L16,14"/>`;
+        // Location marker with a square inside for Container POIs
+        svgPath = `<path fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5"
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                   <rect x="9.5" y="7" width="5" height="5" 
+                      fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5" />`;
       } else {
         // Default location marker for all other POIs
         svgPath = `<path fill="transparent" 

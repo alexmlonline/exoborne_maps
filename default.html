@@ -98,17 +98,17 @@
       <select id="poi-type">
         <option value="shelter">Rebirth Shelter</option>
         <option value="bunker">Rebirth Bunker</option>
+        <option value="container">Locked Containers</option>
+        <option value="secret">Secret</option>
         <option value="fragment">Clearance Fragment</option>
         <option value="machinery">Machinery Parts</option>
         <option value="electronics">Electronics</option>
-        <option value="secret">Secret</option>
         <option value="ec-kits">EC Kits</option>
         <option value="collectibles">Collectibles</option>
         <option value="loot">Loot</option>
-        <option value="container">Locked Containers</option>
-        <option value="respawn">Respawn</option>
         <option value="distilleries">Botkin Distilleries</option>
-        <option value="emp-jammer">EMP Jammer</option>
+        <option value="emp-jammer">EMP Jammers</option>
+        <option value="respawn">Respawns</option>
       </select>
       
       <div class="coordinate-inputs">
@@ -149,17 +149,17 @@
                     </div>
                 </div>
                 <div class="poi-group">
+                  <div class="poi-group-header">
+                      <input type="checkbox" id="group-containers" class="group-checkbox" data-type="container" checked>
+                      <label for="group-containers" style="color: #9b8840">Locked Containers</label>
+                      <button class="select-only-btn" data-type="container">Only</button>
+                  </div>
+              </div>                
+                <div class="poi-group">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-secret" class="group-checkbox" data-type="secret" checked>
                         <label for="group-secret" style="color: #607d8b">Secrets</label>
                         <button class="select-only-btn" data-type="secret">Only</button>
-                    </div>
-                </div>
-                <div class="poi-group">
-                    <div class="poi-group-header">
-                        <input type="checkbox" id="group-containers" class="group-checkbox" data-type="container" checked>
-                        <label for="group-containers" style="color: #9b8840">Locked Containers</label>
-                        <button class="select-only-btn" data-type="container">Only</button>
                     </div>
                 </div>
             </div>
@@ -210,13 +210,6 @@
                 </div>
                 <div class="poi-group">
                     <div class="poi-group-header">
-                        <input type="checkbox" id="group-respawn" class="group-checkbox" data-type="respawn" checked>
-                        <label for="group-respawn" style="color: #ff0000">Respawn</label>
-                        <button class="select-only-btn" data-type="respawn">Only</button>
-                    </div>
-                </div>
-                <div class="poi-group">
-                    <div class="poi-group-header">
                         <input type="checkbox" id="group-distilleries" class="group-checkbox" data-type="distilleries" checked>
                         <label for="group-distilleries" style="color: #0044ff">Botkin Distilleries</label>
                         <button class="select-only-btn" data-type="distilleries">Only</button>
@@ -225,10 +218,17 @@
                 <div class="poi-group">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-emp-jammer" class="group-checkbox" data-type="emp-jammer" checked>
-                        <label for="group-emp-jammer" style="color: #e91e63">EMP Jammer</label>
+                        <label for="group-emp-jammer" style="color: #e91e63">EMP Jammers</label>
                         <button class="select-only-btn" data-type="emp-jammer">Only</button>
                     </div>
                 </div>
+                <div class="poi-group">
+                  <div class="poi-group-header">
+                      <input type="checkbox" id="group-respawn" class="group-checkbox" data-type="respawn" checked>
+                      <label for="group-respawn" style="color: #ff0000">Respawns</label>
+                      <button class="select-only-btn" data-type="respawn">Only</button>
+                  </div>
+              </div>
             </div>
         </div>
         <div class="filter-controls">
