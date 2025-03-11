@@ -1055,7 +1055,7 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
         <label for="context-poi-note">Note:</label>
         <textarea id="context-poi-note" placeholder="Add a note about this POI (shown on hover)"></textarea>
       </div>
-      <div id="context-nearby-warning" class="warning-message" style="display: none;"></div>
+      <!-- <div id="context-nearby-warning" class="warning-message" style="display: none;"></div> -->
       <div class="context-menu-buttons">
         <button id="context-save-btn">Save</button>
         <button id="context-cancel-btn">Cancel</button>
@@ -1193,7 +1193,7 @@ function createAndSaveContextPoi(type, mapX, mapY, description, name) {
   renderPois();
   
   // Send unapproved POI to server
-  saveUnapprovedPoi(poi);
+  saveUnapprovedPoi(poi, true);
   
   $('#context-menu').hide();
   
@@ -1202,7 +1202,7 @@ function createAndSaveContextPoi(type, mapX, mapY, description, name) {
 }
 
 // Function to save unapproved POIs to the server
-function saveUnapprovedPoi(poi) {
+function saveUnapprovedPoi(poi, fromContextMenu = false) {
   // Show loading notification
   showNotification('Saving POI...');
 
@@ -1222,8 +1222,10 @@ function saveUnapprovedPoi(poi) {
   })
   .then(data => {
     if (data.success) {
-      // Add the new POI to the local array
-      pois.push(poi);
+      // Add the new POI to the local array if not already added
+      if (!pois.some(p => p.id === poi.id)) {
+        pois.push(poi);
+      }
       
       // Update UI
       renderPois();
@@ -1232,14 +1234,17 @@ function saveUnapprovedPoi(poi) {
       // Show success notification
       showNotification('POI saved successfully');
       
-      // Clear form
-      $('#poi-type').val('shelter');
-      $('#poi-x').val('');
-      $('#poi-y').val('');
-      $('#poi-desc').val('');
-      
-      // Exit add mode
-      toggleAddMode();
+      // Only clear form and exit add mode if not from context menu
+      if (!fromContextMenu) {
+        // Clear form
+        $('#poi-type').val('shelter');
+        $('#poi-x').val('');
+        $('#poi-y').val('');
+        $('#poi-desc').val('');
+        
+        // Exit add mode
+        toggleAddMode();
+      }
     } else {
       showNotification('Error saving POI: ' + (data.error || 'Unknown error'), true);
     }
@@ -1249,19 +1254,24 @@ function saveUnapprovedPoi(poi) {
     showNotification('Error saving POI: ' + error.message, true);
     
     // Fallback: Save locally if server request fails
-    pois.push(poi);
+    if (!pois.some(p => p.id === poi.id)) {
+      pois.push(poi);
+    }
     renderPois();
     savePoisToStorage();
     showNotification('POI saved locally (server update failed)');
     
-    // Clear form
-    $('#poi-type').val('shelter');
-    $('#poi-x').val('');
-    $('#poi-y').val('');
-    $('#poi-desc').val('');
-    
-    // Exit add mode
-    toggleAddMode();
+    // Only clear form and exit add mode if not from context menu
+    if (!fromContextMenu) {
+      // Clear form
+      $('#poi-type').val('shelter');
+      $('#poi-x').val('');
+      $('#poi-y').val('');
+      $('#poi-desc').val('');
+      
+      // Exit add mode
+      toggleAddMode();
+    }
   });
 }
 
@@ -2677,7 +2687,15 @@ function handleMapClick(e) {
     // Only show context menu for right-click or double-click
     // This is determined by the event type that triggered this function
     if (e.type === 'contextmenu' || e.type === 'dblclick') {
-      showContextMenu(e.pageX, e.pageY, clickX, clickY);
+      // Apply the same coordinate adjustments as in handleAddModeClick
+      const mapX = Math.round(clickX);
+      const mapY = Math.round(clickY - MAP_HEIGHT);
+      
+      // Apply the offsets and scaling factor
+      const adjustedX = (mapX - offsetX) * 1.664;
+      const adjustedY = (mapY - offsetY) * 1.664;
+      
+      showContextMenu(e.pageX, e.pageY, adjustedX, adjustedY);
     }
   }
   
