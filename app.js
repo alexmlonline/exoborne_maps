@@ -444,26 +444,32 @@ function loadPoisFromFile() {
 
 // Map interaction functions
 function startDragging(e) {
+  // Don't start dragging if the right mouse button is pressed (for context menu)
+  if (e.which === 3) {
+    return;
+  }
+  
+  // Don't start dragging if we're in add mode
   if (addMode) {
     // In add mode, clicking creates a POI instead of dragging
     const mapOffset = $('#game-map').offset();
     const clickX = (e.pageX - mapOffset.left) / currentZoom;
     const clickY = (e.pageY - mapOffset.top) / currentZoom;
 
-    tempPoi = {
-      id: 'temp-' + Date.now(),
-      name: `POI-${Date.now().toString().slice(-4)}`,
-      type: 'shelter',
-      description: '',
-      x: clickX,
-      y: clickY,
-      visible: true
-    };
+    // Apply the offsets and scaling factor for the form
+    const mapX = Math.round(clickX);
+    const mapY = Math.round(clickY - MAP_HEIGHT);
+    const adjustedX = (mapX - offsetX) * 1.664;
+    const adjustedY = (mapY - offsetY) * 1.664;
+
+    // Set the coordinates in the form
+    $('#poi-x').val(formatCoordinate(adjustedX));
+    $('#poi-y').val(formatCoordinate(adjustedY));
 
     // Show the form
-    $('#poi-type').val('shelter');
-    $('#poi-desc').val('');
     $('#poi-form').show();
+    $('#poi-type').focus();
+    
     return;
   }
 
@@ -700,11 +706,29 @@ function createAndSavePoi(type, x, y, description) {
 }
 
 function cancelAddPoi() {
+  // Hide the form
   $('#poi-form').hide();
+  
+  // Clear temporary POI
   tempPoi = null;
   
-  // Hide the context menu
+  // Disable add mode
+  addMode = false;
+  
+  // Remove active class from button
+  $('#add-mode-btn').removeClass('active');
+  
+  // Reset cursor style
+  $('#game-map').css('cursor', 'default');
+  
+  // Hide the context menu if it's visible
   $('#context-menu').hide();
+  
+  // Hide the nearby POI warning
+  $('#nearby-poi-warning').hide().empty();
+  
+  // Show notification
+  showNotification('Add mode disabled.');
 }
 
 function togglePoiVisibility(id) {
@@ -2199,6 +2223,11 @@ $(document).ready(function () {
 
   // Add event listener for regular click to deselect pins
   $('#game-map').on('click', function (e) {
+    // If we're in add mode, let the add mode handler take care of it
+    if (addMode) {
+      return;
+    }
+    
     // Only proceed if we didn't click on a POI marker
     if ($(e.target).closest('.poi-marker').length === 0) {
       // Deselect any selected POI
@@ -2671,8 +2700,24 @@ function handleMapClick(e) {
   const clickY = (e.pageY - mapOffset.top) / currentZoom;
   const clickedPoi = $(e.target).closest('.poi-marker');
 
+  // If we're in add mode, handle it differently
   if (addMode) {
-    handleAddModeClick(e);
+    // Apply the offsets and scaling factor for the form
+    const mapX = Math.round(clickX);
+    const mapY = Math.round(clickY - MAP_HEIGHT);
+    const adjustedX = (mapX - offsetX) * 1.664;
+    const adjustedY = (mapY - offsetY) * 1.664;
+
+    // Set the coordinates in the form
+    $('#poi-x').val(formatCoordinate(adjustedX));
+    $('#poi-y').val(formatCoordinate(adjustedY));
+
+    // Show the form
+    $('#poi-form').show();
+    $('#poi-type').focus();
+    
+    // Check for nearby POIs
+    checkNearbyPoisFromForm();
     return;
   }
 
@@ -2686,6 +2731,8 @@ function handleMapClick(e) {
       selectedPoi = null;
       selectedPois = [];
       $('.poi-marker').removeClass('selected multi-selected');
+      // Clear group highlighting
+      $('.poi-group-header').removeClass('highlighted');
       updateSelectionIndicator();
       updateUrlWithSelection();
     }
@@ -2709,25 +2756,6 @@ function handleMapClick(e) {
   trackMapInteraction('click', {
     coordinates: `${clickX},${clickY}`
   });
-}
-
-// Function to handle clicks when in add mode
-function handleAddModeClick(e) {
-  const mapOffset = $('#game-map').offset();
-  const mapX = Math.round((e.pageX - mapOffset.left) / currentZoom);
-  const mapY = Math.round(((e.pageY - mapOffset.top) / currentZoom) - MAP_HEIGHT);
-
-  // Apply the offsets
-  const adjustedX = (mapX - offsetX) * 1.664;
-  const adjustedY = (mapY - offsetY) * 1.664;
-
-  // Set the coordinates in the form
-  $('#poi-x').val(formatCoordinate(adjustedX));
-  $('#poi-y').val(formatCoordinate(adjustedY));
-
-  // Show the form
-  $('#poi-form').show();
-  $('#poi-type').focus();
 }
 
 // Function to update zoom level indicator
