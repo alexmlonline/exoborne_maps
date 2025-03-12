@@ -92,6 +92,7 @@ function updateContextMenuHtml() {
           <option value="secret">Secret</option>
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
+          <option value="jewelries">Jewelries</option>
           <option value="loot">Loot</option>
           <option value="container">Locked Containers</option>
           <option value="respawn">Respawn</option>
@@ -1039,18 +1040,19 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
         <select id="context-poi-type">
           <option value="shelter">Rebirth Shelter</option>
           <option value="bunker">Rebirth Bunker</option>
+          <option value="container">Locked Containers</option>
+          <option value="secret">Secret</option>          
           <option value="fragment">Clearance Fragment</option>
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
           <option value="electronics">Electronics</option>
-          <option value="secret">Secret</option>
+          <option value="jewelries">Jewelries</option>
+          <option value="loot">Loot</option>          
+          <option value="distilleries">Botkin Distilleries</option>
+          <option value="emp-jammer">EMP Jammer</option>          
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
-          <option value="loot">Loot</option>
-          <option value="container">Locked Containers</option>
           <option value="respawn">Respawn</option>
-          <option value="distilleries">Botkin Distilleries</option>
-          <option value="emp-jammer">EMP Jammer</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -1632,6 +1634,8 @@ function getPoiColor(type) {
       return '#d8b4e2'; // Light purple
     case 'collectibles':
       return '#FFB6C1'; // Light pink
+    case 'jewelries':
+      return '#9370DB'; // Medium Purple
     case 'loot':
       return '#9c27b0'; // Purple
     case 'container':

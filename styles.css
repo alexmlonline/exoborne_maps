@@ -605,6 +605,11 @@
     color: #FFB6C1; /* Light pink color for Collectibles */
   }
   
+  #context-poi-type option[value="jewelries"] {
+    background-color: #272727;
+    color: #9370DB; /* Medium Purple color for Jewelries */
+  }
+  
   #context-poi-type option[value="loot"] {
     background-color: #272727;
     color: #9c27b0; /* Purple color for Loot */
@@ -711,6 +716,11 @@
   #poi-type option[value="collectibles"] {
     background-color: #272727;
     color: #FFB6C1; /* Light pink for Collectibles */
+  }
+  
+  #poi-type option[value="jewelries"] {
+    background-color: #272727;
+    color: #9370DB; /* Medium Purple for Jewelries */
   }
   
   #poi-type option[value="loot"] {

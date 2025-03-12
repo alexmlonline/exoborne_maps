@@ -105,10 +105,11 @@
         <option value="machinery" style="display: none;">Machinery Parts</option>
         <option value="ec-kits" style="display: none;">EC Kits</option>
         <option value="electronics">Electronics</option>
-        <option value="collectibles">Collectibles</option>
-        <option value="loot">Loot</option>
+        <option value="jewelries">Jewelries</option>
+        <option value="loot">Loot</option>        
         <option value="distilleries">Botkin Distilleries</option>
         <option value="emp-jammer">EMP Jammers</option>
+        <option value="collectibles">Collectibles</option>
         <option value="respawn">Respawns</option>
       </select>
       
@@ -189,31 +190,38 @@
                     </div>
                 </div>
                 <div class="poi-group">
+                  <div class="poi-group-header">
+                      <input type="checkbox" id="group-jewelries" class="group-checkbox" data-type="jewelries" checked>
+                      <label for="group-jewelries" style="color: #9370DB">Jewelries</label>
+                      <button class="select-only-btn" data-type="jewelries">Only</button>
+                  </div>
+              </div>
+              <div class="poi-group">
+                <div class="poi-group-header">
+                    <input type="checkbox" id="group-loot" class="group-checkbox" data-type="loot" checked>
+                    <label for="group-loot" style="color: #9c27b0">Loot</label>
+                    <button class="select-only-btn" data-type="loot">Only</button>
+                </div>
+            </div>                              
+                <div class="poi-group">
+                  <div class="poi-group-header">
+                      <input type="checkbox" id="group-distilleries" class="group-checkbox" data-type="distilleries" checked>
+                      <label for="group-distilleries" style="color: #00CED1">Botkin Distilleries</label>
+                      <button class="select-only-btn" data-type="distilleries">Only</button>
+                  </div>
+              </div>
+              <div class="poi-group">
+                  <div class="poi-group-header">
+                      <input type="checkbox" id="group-emp-jammer" class="group-checkbox" data-type="emp-jammer" checked>
+                      <label for="group-emp-jammer" style="color: #e91e63">EMP Jammers</label>
+                      <button class="select-only-btn" data-type="emp-jammer">Only</button>
+                  </div>
+              </div>                
+                <div class="poi-group">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-collectibles" class="group-checkbox" data-type="collectibles" checked>
                         <label for="group-collectibles" style="color: #FFB6C1">Collectibles</label>
                         <button class="select-only-btn" data-type="collectibles">Only</button>
-                    </div>
-                </div>
-                <div class="poi-group">
-                    <div class="poi-group-header">
-                        <input type="checkbox" id="group-loot" class="group-checkbox" data-type="loot" checked>
-                        <label for="group-loot" style="color: #9c27b0">Loot</label>
-                        <button class="select-only-btn" data-type="loot">Only</button>
-                    </div>
-                </div>
-                <div class="poi-group">
-                    <div class="poi-group-header">
-                        <input type="checkbox" id="group-distilleries" class="group-checkbox" data-type="distilleries" checked>
-                        <label for="group-distilleries" style="color: #00CED1">Botkin Distilleries</label>
-                        <button class="select-only-btn" data-type="distilleries">Only</button>
-                    </div>
-                </div>
-                <div class="poi-group">
-                    <div class="poi-group-header">
-                        <input type="checkbox" id="group-emp-jammer" class="group-checkbox" data-type="emp-jammer" checked>
-                        <label for="group-emp-jammer" style="color: #e91e63">EMP Jammers</label>
-                        <button class="select-only-btn" data-type="emp-jammer">Only</button>
                     </div>
                 </div>
                 <div class="poi-group">
