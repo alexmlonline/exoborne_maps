@@ -86,10 +86,11 @@ function updateContextMenuHtml() {
           <option value="shelter">Rebirth Shelter</option>
           <option value="bunker">Rebirth Bunker</option>
           <option value="fragment">Clearance Fragment</option>
-          <option value="machinery">Machinery Parts</option>
+          <option value="machinery">EC Kits/Machinery Parts</option>
+          <option value="machinery" style="display: none;">Machinery Parts</option>
           <option value="electronics">Electronics</option>
           <option value="secret">Secret</option>
-          <option value="ec-kits">EC Kits</option>
+          <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="loot">Loot</option>
           <option value="container">Locked Containers</option>
@@ -1039,10 +1040,11 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
           <option value="shelter">Rebirth Shelter</option>
           <option value="bunker">Rebirth Bunker</option>
           <option value="fragment">Clearance Fragment</option>
-          <option value="machinery">Machinery Parts</option>
+          <option value="machinery">EC Kits/Machinery Parts</option>
+          <option value="machinery" style="display: none;">Machinery Parts</option>
           <option value="electronics">Electronics</option>
           <option value="secret">Secret</option>
-          <option value="ec-kits">EC Kits</option>
+          <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="loot">Loot</option>
           <option value="container">Locked Containers</option>
