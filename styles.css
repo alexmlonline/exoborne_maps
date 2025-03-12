@@ -617,7 +617,7 @@
   
   #context-poi-type option[value="distilleries"] {
     background-color: #272727;
-    color: #0044ff; /* Blue color for Distilleries */
+    color: #00CED1; /* Teal/Turquoise color for Distilleries */
   }
   
   #context-poi-type option[value="emp-jammer"] {
@@ -730,7 +730,7 @@
 
   #poi-type option[value="distilleries"] {
     background-color: #272727;
-    color: #0044ff; /* Blue color for Distilleries */
+    color: #00CED1; /* Teal/Turquoise color for Distilleries */
   }
   
   #poi-type option[value="emp-jammer"] {

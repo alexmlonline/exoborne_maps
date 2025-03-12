@@ -1639,7 +1639,7 @@ function getPoiColor(type) {
     case 'respawn':
       return '#ff0000'; // Red
     case 'distilleries':
-      return '#0044ff'; // Blue
+      return '#00CED1'; // Teal/Turquoise
     case 'emp-jammer':
       return '#e91e63'; // Pink
     default:
