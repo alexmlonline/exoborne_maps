@@ -59,7 +59,7 @@ class PoiService {
     }
 
     // Soft delete a POI
-    async deletePoi(id, sessionId, canEdit) {
+    async deletePoi(id, sessionId, isAdmin) {
         // First get the POI to check permissions
         const [poi] = await db.query('SELECT * FROM pois WHERE id = ? AND isDeleted = FALSE', [id]);
         
@@ -70,12 +70,12 @@ class PoiService {
         const poiData = poi[0];
 
         // Check if the POI is approved
-        if (poiData.approved) {
-            throw new Error('Cannot delete approved POIs');
+        if (poiData.approved && !isAdmin) {
+            throw new Error('Cannot delete approved POIs without admin privileges');
         }
 
         // Check permissions
-        if (!canEdit && poiData.sessionId && poiData.sessionId !== sessionId) {
+        if (!isAdmin && poiData.sessionId && poiData.sessionId !== sessionId) {
             throw new Error('You can only delete POIs that you created in this session');
         }
 
@@ -85,8 +85,8 @@ class PoiService {
     }
 
     // Approve a POI
-    async approvePoi(id, canEdit) {
-        if (!canEdit) {
+    async approvePoi(id, isAdmin) {
+        if (!isAdmin) {
             throw new Error('You do not have permission to approve POIs');
         }
 
@@ -105,8 +105,8 @@ class PoiService {
     }
 
     // Restore a deleted POI (admin only)
-    async restorePoi(id, canEdit) {
-        if (!canEdit) {
+    async restorePoi(id, isAdmin) {
+        if (!isAdmin) {
             throw new Error('You do not have permission to restore POIs');
         }
 

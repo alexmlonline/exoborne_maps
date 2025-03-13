@@ -1446,3 +1446,76 @@
     color: #ddd;
   }
   
+  /* Admin button and login form styles */
+  .admin-btn {
+    background-color: #607d8b;
+    color: white;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .admin-btn:hover {
+    background-color: #455a64;
+  }
+
+  .admin-controls {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #444;
+  }
+
+  .admin-login-form {
+    margin: 15px 0;
+  }
+
+  .form-field {
+    margin-bottom: 15px;
+  }
+
+  .form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  .form-field input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #444;
+    color: white;
+  }
+
+  #admin-login-btn.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  /* Admin indicator in the UI */
+  .admin-indicator {
+    display: inline-block;
+    margin-right: 10px;
+    color: #4CAF50;
+    font-size: 12px;
+  }
+
+  /* Admin logout button */
+  #admin-logout-btn {
+    background-color: #f44336;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  #admin-logout-btn:hover {
+    background-color: #d32f2f;
+  }
+
+  #admin-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  

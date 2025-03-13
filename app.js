@@ -48,11 +48,152 @@ const formatCoordinate = (value) => {
   return sign + String(Math.abs(roundedValue)).padStart(4, '0');
 };
 
-// Check if user has edit permissions based on URL parameter
+// Check if user has edit permissions based on JWT token
 function hasEditPermission() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const canEdit = urlParams.get('canEdit') === '1';
-  return canEdit;
+  const token = localStorage.getItem('admin_token');
+  if (!token) return false;
+  
+  try {
+    // Check if token is expired
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiryTime = payload.exp * 1000; // Convert to milliseconds
+    
+    if (Date.now() > expiryTime) {
+      // Token expired, remove it
+      localStorage.removeItem('admin_token');
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error validating token:', error);
+    localStorage.removeItem('admin_token');
+    return false;
+  }
+}
+
+// Show admin login modal
+function showAdminLoginModal() {
+  // Create modal if it doesn't exist
+  if ($('#admin-login-modal').length === 0) {
+    const modalHtml = `
+      <div id="admin-login-modal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">Admin Authentication</h2>
+            <button class="modal-close" id="admin-modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="admin-login-error" class="warning-message" style="display: none;"></div>
+            <div class="admin-login-form">
+              <div class="form-field">
+                <label for="admin-password">Admin Password:</label>
+                <input type="password" id="admin-password" placeholder="Enter admin password" autocomplete="off">
+                <div class="password-info" style="margin-top: 5px; font-size: 11px; color: #aaa;">
+                  Password is securely transmitted and verified on the server.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="admin-login-btn-submit" class="confirm-btn">Login</button>
+            <button id="admin-cancel-btn" class="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+    $('body').append(modalHtml);
+    
+    // Set up event handlers
+    $('#admin-login-btn-submit').on('click', authenticateAdmin);
+    $('#admin-cancel-btn, #admin-modal-close').on('click', function() {
+      $('#admin-login-modal').hide();
+      $('#admin-password').val('');
+      $('#admin-login-error').hide();
+    });
+    
+    // Close when clicking outside the modal content
+    $('#admin-login-modal').on('click', function(event) {
+      if (event.target === this) {
+        $('#admin-login-modal').hide();
+        $('#admin-password').val('');
+        $('#admin-login-error').hide();
+      }
+    });
+    
+    // Handle Enter key press
+    $('#admin-password').on('keypress', function(e) {
+      if (e.which === 13) {
+        authenticateAdmin();
+      }
+    });
+  }
+  
+  // Show the modal
+  $('#admin-login-modal').show();
+  $('#admin-password').focus();
+}
+
+// Authenticate admin with server
+function authenticateAdmin() {
+  const password = $('#admin-password').val();
+  
+  if (!password) {
+    $('#admin-login-error').text('Please enter a password').show();
+    return;
+  }
+  
+  // Show loading state
+  $('#admin-login-btn-submit').prop('disabled', true).text('Authenticating...');
+  
+  // Send authentication request to server
+  fetch(`${API_ENDPOINT}/admin-auth`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Store token in localStorage
+      localStorage.setItem('admin_token', data.token);
+      
+      // Hide modal
+      $('#admin-login-modal').hide();
+      $('#admin-password').val('');
+      $('#admin-login-error').hide();
+      
+      // Show success notification
+      showNotification('Admin authentication successful');
+      
+      // Refresh the UI to show admin controls
+      updateAdminUIState();
+    } else {
+      $('#admin-login-error').text(data.error || 'Authentication failed').show();
+    }
+  })
+  .catch(error => {
+    console.error('Authentication error:', error);
+    $('#admin-login-error').text('Authentication failed: ' + error.message).show();
+  })
+  .finally(() => {
+    // Reset button state
+    $('#admin-login-btn-submit').prop('disabled', false).text('Login');
+  });
+}
+
+// Logout admin
+function logoutAdmin() {
+  localStorage.removeItem('admin_token');
+  showNotification('Admin logged out successfully');
+  updateAdminUIState();
 }
 
 // Function to check if a POI belongs to the current session
@@ -882,21 +1023,23 @@ function deletePoi(poiId) {
     const deletedPoi = { 
       ...poi, 
       action: 'delete',
-      canEdit: hasEditPermission() ? '1' : '0'
+      sessionId: sessionId
     };
+
+    // Add admin token if user has admin permissions
+    if (hasEditPermission()) {
+      deletedPoi.token = localStorage.getItem('admin_token');
+    }
 
     // Show loading notification
     showNotification('Deleting POI...');
 
-    // Include canEdit in both the URL and the request body
-    const canEditValue = hasEditPermission() ? '1' : '0';
-    const url = `${API_ENDPOINT}/delete-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
-
     // Send delete request to server
-    fetch(url, {
+    fetch(`${API_ENDPOINT}/delete-poi`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(hasEditPermission() && { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` })
       },
       body: JSON.stringify(deletedPoi),
     })
@@ -962,7 +1105,7 @@ function approvePoi(poiId) {
     const poi = pois.find(p => p.id === poiId);
     if (!poi) return;
 
-    // Only users with canEdit=1 can approve POIs
+    // Only users with admin token can approve POIs
     if (!hasEditPermission()) {
       showNotification('You do not have permission to approve POIs', true);
       return;
@@ -986,21 +1129,18 @@ function approvePoi(poiId) {
     const approvedPoi = { 
       ...poi, 
       approved: true,
-      canEdit: hasEditPermission() ? '1' : '0'
+      token: localStorage.getItem('admin_token') // Include the admin token
     };
 
     // Show loading notification
     showNotification('Approving POI...');
 
-    // Include canEdit in both the URL and the request body
-    const canEditValue = hasEditPermission() ? '1' : '0';
-    const url = `${API_ENDPOINT}/approve-poi${hasEditPermission() ? '?canEdit=1' : ''}`;
-
-    // Send approval request to server
-    fetch(url, {
+    // Send approval request to server with token in the header
+    fetch(`${API_ENDPOINT}/approve-poi`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
       },
       body: JSON.stringify(approvedPoi),
     })
@@ -1012,17 +1152,30 @@ function approvePoi(poiId) {
     })
     .then(data => {
       if (data.success) {
-        // Update local POI
-        const index = pois.findIndex(p => p.id === poiId);
-        if (index !== -1) {
-          pois[index] = { ...pois[index], approved: true };
-          
-          // Just render the POIs without reloading from server
-          renderPois();
-          savePoisToStorage();
-          
-          showNotification('POI approved successfully');
+        // Update local POIs with the returned data
+        if (data.approvedPois) {
+          pois = pois.filter(p => !p.approved || p.id === poiId);
+          pois = [...pois, ...data.approvedPois];
+        } else {
+          // Fallback: Update locally if server doesn't return updated POIs
+          const index = pois.findIndex(p => p.id === poiId);
+          if (index !== -1) {
+            pois[index] = { ...pois[index], approved: true };
+          }
         }
+        
+        // If we were showing only unapproved POIs, maintain that filter
+        if (showingOnlyUnapproved) {
+          pois.forEach(p => {
+            if (p.approved) p.visible = false;
+          });
+        }
+        
+        // Update UI
+        renderPois();
+        savePoisToStorage();
+        
+        showNotification('POI approved successfully');
       } else {
         showNotification('Error approving POI: ' + (data.error || 'Unknown error'), true);
       }
@@ -1327,17 +1480,23 @@ function saveEditedPoi() {
       ...poi,
       type,
       description,
-      canEdit: hasEditPermission() ? '1' : '0'
+      sessionId: sessionId
     };
+
+    // Add admin token if user has admin permissions
+    if (hasEditPermission()) {
+      updatedPoi.token = localStorage.getItem('admin_token');
+    }
 
     // Show loading notification
     showNotification('Updating POI...');
 
     // Send update to server
-    fetch(`${API_ENDPOINT}/save-poi${hasEditPermission() ? '?canEdit=1' : ''}`, {
+    fetch(`${API_ENDPOINT}/save-poi`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(hasEditPermission() && { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` })
       },
       body: JSON.stringify(updatedPoi),
     })
@@ -1374,25 +1533,6 @@ function saveEditedPoi() {
     .catch(error => {
       console.error('Error updating POI:', error);
       showNotification('Error updating POI: ' + error.message, true);
-      
-      // Fallback: Update locally if server request fails
-      const index = pois.findIndex(p => p.id === poiId);
-      if (index !== -1) {
-        pois[index] = {
-          ...pois[index],
-          type,
-          description
-        };
-        
-        // Hide context menu
-        $('#context-menu').hide();
-        
-        // Update UI
-        renderPois();
-        savePoisToStorage();
-        
-        showNotification('POI updated locally (server update failed)');
-      }
     });
     trackEvent('EditPOI', {
       poiId: poiId
@@ -2691,6 +2831,21 @@ $(document).ready(function () {
     // Update URL with category parameter
     updateUrlWithLootParam(true, category);
   });
+
+  // Admin login button
+  $('#admin-login-btn').on('click', function() {
+    // If already logged in, show logout option
+    if (hasEditPermission()) {
+      if (confirm('You are already logged in as admin. Do you want to log out?')) {
+        logoutAdmin();
+      }
+    } else {
+      showAdminLoginModal();
+    }
+  });
+  
+  // Update admin UI state
+  updateAdminUIState();
 });
 
 // Function to handle map click events for both right-click and double-click
@@ -3331,6 +3486,7 @@ function checkUrlParameters() {
     const guideParam = urlParams.get('guide');
     const lootParam = urlParams.get('loot');
     const categoryParam = urlParams.get('category');
+    const canEditParam = urlParams.get('canEdit');
     
     // Check for guide parameter
     if (guideParam === '1') {
@@ -3364,6 +3520,9 @@ function checkUrlParameters() {
             trackEvent('other_loot_opened_from_url', { category: categoryParam || 'all' });
         }
     }
+    
+    // Update admin UI state based on URL parameters
+    updateAdminUIState();
 }
 
 // Function to update URL with loot parameter
@@ -3706,4 +3865,34 @@ function darkenColor(hex, percent) {
   
   // Convert back to hex
   return `#${(1 << 24 | darker.r << 16 | darker.g << 8 | darker.b).toString(16).slice(1)}`;
+}
+
+// Function to update the admin UI state based on login status
+function updateAdminUIState() {
+  const isAdmin = hasEditPermission();
+  const urlParams = new URLSearchParams(window.location.search);
+  const canEdit = urlParams.get('canEdit') === '1';
+  
+  // Show/hide the admin controls section based on URL parameter
+  $('.admin-controls').toggle(canEdit);
+  
+  // Update admin button text
+  if (isAdmin) {
+    $('#admin-login-btn').text('Admin Options');
+    
+    // Update admin status indicator
+    $('#admin-status').html('<span class="admin-indicator">👑 Admin</span><button id="admin-logout-btn">Logout</button>').show();
+    
+    // Add logout button handler
+    $('#admin-logout-btn').on('click', function(e) {
+      e.stopPropagation(); // Prevent triggering the parent button
+      logoutAdmin();
+    });
+  } else {
+    $('#admin-login-btn').text('Admin Login');
+    $('#admin-status').hide().empty();
+  }
+  
+  // Update UI elements that depend on admin status
+  $('#show-unapproved-btn').toggle(isAdmin);
 }
