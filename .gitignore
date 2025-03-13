@@ -4,3 +4,4 @@
 # !pois/
 .github/workflows/main_generator-map.yml
 .github/workflows/master_app-hk-prod-exo-poi-api.yml
+backend/.env
