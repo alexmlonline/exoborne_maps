@@ -1152,16 +1152,16 @@ function approvePoi(poiId) {
     })
     .then(data => {
       if (data.success) {
-        // Update local POIs with the returned data
-        if (data.approvedPois) {
-          pois = pois.filter(p => !p.approved || p.id === poiId);
+        // Always update the local POI first
+        const index = pois.findIndex(p => p.id === poiId);
+        if (index !== -1) {
+          pois[index] = { ...pois[index], approved: true };
+        }
+        
+        // Then update with server data if available
+        if (data.approvedPois && data.approvedPois.length > 0) {
+          pois = pois.filter(p => p.id !== poiId);
           pois = [...pois, ...data.approvedPois];
-        } else {
-          // Fallback: Update locally if server doesn't return updated POIs
-          const index = pois.findIndex(p => p.id === poiId);
-          if (index !== -1) {
-            pois[index] = { ...pois[index], approved: true };
-          }
         }
         
         // If we were showing only unapproved POIs, maintain that filter
