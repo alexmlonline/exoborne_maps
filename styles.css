@@ -630,8 +630,13 @@
     color: #e91e63; /* Pink color for EMP Jammer */
   }
   
+  #context-poi-type option[value="vending"] {
+    background-color: #272727;
+    color: #FF5252; /* Reddish color for Vending Machines */
+  }
+  
   #context-delete-btn {
-    background-color: #f44336;
+    background-color: #f44336 !important;
   }
   
   #context-delete-btn:hover {
@@ -746,6 +751,11 @@
   #poi-type option[value="emp-jammer"] {
     background-color: #272727;
     color: #e91e63; /* Pink color for EMP Jammer */
+  }
+  
+  #poi-type option[value="vending"] {
+    background-color: #272727;
+    color: #FF5252; /* Reddish color for Vending Machines */
   }
   
   #show-unapproved-btn {

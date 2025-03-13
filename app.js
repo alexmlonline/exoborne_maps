@@ -1810,6 +1810,8 @@ function getPoiColor(type) {
       return '#00CED1'; // Teal/Turquoise
     case 'emp-jammer':
       return '#e91e63'; // Pink
+    case 'vending':
+      return '#FF5252'; // Reddish color for Vending Machines
     default:
       return '#ffffff'; // White for unknown types
   }
