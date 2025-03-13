@@ -1617,6 +1617,16 @@ function renderPois() {
                       fill="transparent" 
                       stroke="${poiColor}" 
                       stroke-width="1.5" />`;
+      } else if (poi.type === 'jewelries') {
+        // Location marker with a rhombus (diamond) inside for Jewelries POIs
+        svgPath = `<path fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5"
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                   <polygon points="12,5.5 14.5,9.5 12,13.5 9.5,9.5" 
+                      fill="transparent" 
+                      stroke="${poiColor}" 
+                      stroke-width="1.5" />`;
       } else {
         // Default location marker for all other POIs
         svgPath = `<path fill="transparent" 
@@ -3878,9 +3888,10 @@ function updateAdminUIState() {
   // Show/hide the admin controls section based on URL parameter
   $('.admin-controls').toggle(canEdit);
   
-  // Update admin button text
+  // Hide admin button when logged in, show when not logged in
   if (isAdmin) {
-    $('#admin-login-btn').text('Admin Options');
+    // Hide the admin login button
+    $('#admin-login-btn').hide();
     
     // Update admin status indicator
     $('#admin-status').html('<span class="admin-indicator">👑 Admin</span><button id="admin-logout-btn">Logout</button>').show();
@@ -3891,7 +3902,8 @@ function updateAdminUIState() {
       logoutAdmin();
     });
   } else {
-    $('#admin-login-btn').text('Admin Login');
+    // Show the admin login button with default text
+    $('#admin-login-btn').show().text('Admin Login');
     $('#admin-status').hide().empty();
   }
   
