@@ -1686,6 +1686,10 @@ function renderPois() {
                   opacity: 0
               });
           }
+          
+          // Highlight the corresponding POI group in the sidebar
+          const poiType = poi.type;
+          $(`.group-checkbox[data-type="${poiType}"]`).closest('.poi-group-header').addClass('hover-highlighted');
       });
 
       marker.on('mouseleave', function () {
@@ -1693,6 +1697,11 @@ function renderPois() {
               visibility: 'hidden',
               opacity: 0
           });
+          
+          // Remove highlight from POI group when mouse leaves the marker
+          // Only remove hover highlight, not selection highlight
+          const poiType = poi.type;
+          $(`.group-checkbox[data-type="${poiType}"]`).closest('.poi-group-header').removeClass('hover-highlighted');
       });
 
       // Add click handler for cycling through overlapping POIs

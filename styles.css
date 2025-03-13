@@ -311,6 +311,7 @@
   .poi-group {
     margin-bottom: 3px;
     display: block;
+    position: relative;
   }
   
   .poi-group-header {
@@ -318,22 +319,64 @@
     align-items: center;
     padding: 3px 5px;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 4px;
     background-color: #333;
     font-weight: bold;
     font-size: 14px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
   }
   
   .poi-group-header.highlighted {
-    background-color: #444;
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    background-color: #4a4a4a;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
     position: relative;
-    animation: groupHighlight 2s infinite alternate;
+    animation: groupHighlight 1.5s infinite alternate;
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    transform: scale(1.03);
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  }
+  
+  .poi-group-header.hover-highlighted {
+    background-color: #3f3f3f;
+    position: relative;
+    transition: all 0.2s ease;
+    border: 2px solid #2196F3;
+    border-radius: 5px;
+    transform: scale(1.02);
+    z-index: 5;
+    animation: borderPulse 2s infinite;
   }
   
   @keyframes groupHighlight {
-    from { background-color: #444; }
-    to { background-color: #555; }
+    from { 
+      background-color: #4a4a4a; 
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    }
+    to { 
+      background-color: #555; 
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+    }
+  }
+  
+  @keyframes borderPulse {
+    0% { 
+      border-color: #2196F3; 
+      box-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+      background-color: #3f3f3f;
+    }
+    50% { 
+      border-color: #64B5F6; 
+      box-shadow: 0 0 12px rgba(100, 181, 246, 0.6);
+      background-color: #454545;
+    }
+    100% { 
+      border-color: #2196F3; 
+      box-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+      background-color: #3f3f3f;
+    }
   }
   
   .poi-group-header input[type="checkbox"] {
