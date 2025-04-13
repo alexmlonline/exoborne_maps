@@ -1,39 +1,47 @@
 const express = require('express');
+
+
+// Load environment variables from .env file BEFORE other imports
+// This ensures environment variables are available to all modules
+try {
+    const dotenv = require('dotenv');
+    dotenv.config();
+} catch (error) {
+    console.error('Failed to load dotenv:', error);
+    throw error;
+}
+
 const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const poiService = require('./services/poiService');
 
-// Load environment variables from .env file BEFORE other imports
-// This ensures environment variables are available to all modules
-try {
-  const dotenv = require('dotenv');
-  const result = dotenv.config();
-  
-  if (result.error) {
-    console.error('Error loading .env file:', result.error);
-  } else {
-    console.log('Environment variables loaded from .env file');
-    // Debug: Print loaded environment variables (without showing full values for security)
-    console.log('Environment variables found:');
-    if (process.env.JWT_SECRET) {
-      console.log('- JWT_SECRET: [Set]');
-    } else {
-      console.log('- JWT_SECRET: [Not set]');
-    }
-    
-    if (process.env.ADMIN_PASSWORD) {
-      console.log('- ADMIN_PASSWORD: [Set]');
-    } else {
-      console.log('- ADMIN_PASSWORD: [Not set]');
-    }
-    
-    console.log('- NODE_ENV:', process.env.NODE_ENV || '[Not set]');
-    console.log('- PORT:', process.env.PORT || '[Not set]');
-  }
-} catch (error) {
-  console.error('Failed to load dotenv:', error);
+
+console.log('Environment variables loaded from .env file');
+// Debug: Print loaded environment variables (without showing full values for security)
+console.log('Environment variables found:');
+
+console.log('- DB_HOST:',process.env.DB_HOST);
+console.log('- DB_USER:',process.env.DB_USER);
+console.log('- DB_PASSWORD:',process.env.DB_PASSWORD?.slice(0, 3));
+console.log('- DB_NAME:',process.env.DB_NAME);
+
+
+if (process.env.JWT_SECRET) {
+    console.log('- JWT_SECRET: [Set]');
+} else {
+    console.log('- JWT_SECRET: [Not set]');
 }
+
+if (process.env.ADMIN_PASSWORD) {
+    console.log('- ADMIN_PASSWORD: [Set]');
+} else {
+    console.log('- ADMIN_PASSWORD: [Not set]');
+}
+
+console.log('- NODE_ENV:', process.env.NODE_ENV || '[Not set]');
+console.log('- PORT:', process.env.PORT || '[Not set]');
+
 
 // Import secrets config AFTER environment variables are loaded
 const secretsConfig = require('./config/keyVault');
