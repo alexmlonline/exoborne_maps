@@ -2,6 +2,43 @@
 let offsetX = 602; // Change this to your desired X offset
 let offsetY = -248; // Change this to your desired Y offset
 
+// Map configuration
+const MAP_IDS = {
+  MAYNARD: 1,
+  AGNESVILLE: 2,
+  SINKHOLE: 3
+};
+
+const MAP_CONFIG = {
+  [MAP_IDS.MAYNARD]: {
+    name: 'maynard',
+    displayName: 'Maynard',
+    width: 2000,
+    height: 1430,
+    backgroundImage: 'maps/maynard_map.jpg',
+    heatmapImage: 'maps/Maynard_Heatmap_Transparent.png',
+    guideImage: 'maps/Maynard_Guide_Transparent.png'
+  },
+  [MAP_IDS.AGNESVILLE]: {
+    name: 'agnesville',
+    displayName: 'Agnesville',
+    width: 2000,
+    height: 1430,
+    backgroundImage: 'maps/agnesville_map.jpg',
+    heatmapImage: 'maps/Agnesville_Heatmap_Transparent.png',
+    guideImage: 'maps/Agnesville_Guide_Transparent.png'
+  },
+  [MAP_IDS.SINKHOLE]: {
+    name: 'sinkhole',
+    displayName: 'Sinkhole',
+    width: 2000,
+    height: 1430,
+    backgroundImage: 'maps/sinkhole_map.jpg',
+    heatmapImage: 'maps/Sinkhole_Heatmap_Transparent.png',
+    guideImage: 'maps/Sinkhole_Guide_Transparent.png'
+  }
+};
+
 // Configuration
 // Determine if we're running locally or in production (Azure)
 const isLocalhost = window.location.hostname === 'localhost' || 
@@ -11,9 +48,16 @@ const isLocalhost = window.location.hostname === 'localhost' ||
 // Use localhost URL for local development, just '/api' for production
 const API_ENDPOINT = isLocalhost ? 'http://localhost:8080/api' : window.location.origin + '/api';
 
+// Current map ID (default to Maynard)
+let currentMapId = MAP_IDS.MAYNARD;
+
+// Get current map configuration
+const getCurrentMapConfig = () => MAP_CONFIG[currentMapId];
+
 const MAP_WIDTH = 2000;
 const MAP_HEIGHT = 1430;
-const STORAGE_KEY = 'game_map_pois';
+const STORAGE_KEY_PREFIX = 'game_map_pois';
+const getStorageKey = () => `${STORAGE_KEY_PREFIX}_${currentMapId}`;
 const SESSION_KEY = 'game_map_session';
 const DEFAULT_ZOOM = 1;
 
@@ -357,9 +401,14 @@ function updateContextMenuHtml() {
 // Initialize the map
 function initMap() {
   const mapElement = $('#game-map');
+  const mapConfig = getCurrentMapConfig();
+  
   mapElement.css({
-    width: MAP_WIDTH + 'px',
-    height: MAP_HEIGHT + 'px',
+    width: mapConfig.width + 'px',
+    height: mapConfig.height + 'px',
+    backgroundImage: `url(${mapConfig.backgroundImage})`,
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
     transform: `scale(${currentZoom}) translate(${mapPosition.x}px, ${mapPosition.y}px)`
   });
 
@@ -374,9 +423,9 @@ function initMap() {
   preloadOverlayImages();
   
   heatmapOverlay.css({
-    width: MAP_WIDTH + 'px',
-    height: MAP_HEIGHT + 'px',
-    backgroundImage: 'url(maps/Maynard_Heatmap_Transparent.png)',
+    width: mapConfig.width + 'px',
+    height: mapConfig.height + 'px',
+    backgroundImage: `url(${mapConfig.heatmapImage})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.7,
@@ -384,9 +433,9 @@ function initMap() {
   });
 
   guideOverlay.css({
-    width: MAP_WIDTH + 'px',
-    height: MAP_HEIGHT + 'px',
-    backgroundImage: 'url(maps/Maynard_Guide_Transparent.png)',
+    width: mapConfig.width + 'px',
+    height: mapConfig.height + 'px',
+    backgroundImage: `url(${mapConfig.guideImage})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.9,
@@ -401,9 +450,6 @@ function initMap() {
   
   // Initialize zoom indicator
   updateZoomIndicator();
-  
-  // Show session management UI
-  // showSessionManagement(); // Removed as requested
 
   // Mouse events for dragging
   mapElement.on('mousedown', startDragging);
@@ -427,10 +473,10 @@ function initMap() {
 
   // Heatmap toggle
   $('#toggle-heatmap').on('click', toggleHeatmap);
-
+  
   // Guide toggle
   $('#toggle-guide').on('click', toggleGuide);
-
+  
   // POI controls
   $('#add-mode-btn').on('click', toggleAddMode);
   $('#refresh-btn').on('click', function() {
@@ -441,7 +487,47 @@ function initMap() {
   });
   $('#save-poi-btn').on('click', savePoi);
   $('#cancel-poi-btn').on('click', cancelAddPoi);
-  $('#session-btn').on('click', showSessionManagement);
+  
+  // Map click handler for adding POIs
+  $('#game-map').on('click', handleMapClick);
+  
+  // Double click handler for adding POIs
+  $('#game-map').on('dblclick', function(e) {
+    e.preventDefault();
+    
+    // Only handle double-click if we're in add mode or if right-click context menu is enabled
+    if (addMode) {
+      handleMapClick(e);
+    } else {
+      // Show context menu at the clicked location
+      const mapOffset = $('#game-map').offset();
+      const clickX = e.pageX - mapOffset.left;
+      const clickY = e.pageY - mapOffset.top;
+      
+      // Convert screen coordinates to map coordinates
+      const mapX = Math.round((clickX / currentZoom - offsetX) * 1.664);
+      const mapY = Math.round(((clickY / currentZoom - offsetY - MAP_HEIGHT) * 1.664));
+      
+      showContextMenu(e.pageX, e.pageY, mapX, mapY);
+    }
+  });
+  
+  // Right-click handler for context menu
+  $('#game-map').on('contextmenu', function(e) {
+    e.preventDefault();
+    
+    // Get the click position relative to the map
+    const mapOffset = $('#game-map').offset();
+    const clickX = e.pageX - mapOffset.left;
+    const clickY = e.pageY - mapOffset.top;
+    
+    // Convert screen coordinates to map coordinates
+    const mapX = Math.round((clickX / currentZoom - offsetX) * 1.664);
+    const mapY = Math.round(((clickY / currentZoom - offsetY - MAP_HEIGHT) * 1.664));
+    
+    // Show the context menu
+    showContextMenu(e.pageX, e.pageY, mapX, mapY);
+  });
   
   // Add event handler for the new session link
   $(document).on('click', '#create-new-session', function(e) {
@@ -454,16 +540,18 @@ function initMap() {
       renderPois(); // Re-render to update session indicators
     }
   });
-
+  
   // Initialize the context menu
   updateContextMenuHtml();
 
   // Load POIs
-  //loadPoisFromStorage();
   loadPoisFromFile();
   syncWithServer().then(() => {
     // Additional actions after sync if needed
   });
+
+  // Initialize map selector
+  initMapSelector();
 }
 
 function loadPoisFromFile() {
@@ -474,6 +562,9 @@ function loadPoisFromFile() {
   
   // Store the current state of preserveUnapprovedOnly flag
   const showingOnlyUnapproved = window.preserveUnapprovedOnly;
+  
+  // Get the current map ID for filtering
+  const mapId = currentMapId;
   
   // Load both approved and draft POIs
   Promise.all([
@@ -506,7 +597,8 @@ function loadPoisFromFile() {
       const { action, sessionId, ...cleanPoi } = poi;
       return {
         ...cleanPoi,
-        approved: true // Ensure approved status for main POIs
+        approved: true, // Ensure approved status for main POIs
+        mapId: poi.mapId || mapId // Use existing mapId or set current mapId
       };
     });
 
@@ -515,7 +607,8 @@ function loadPoisFromFile() {
       const { action, ...cleanPoi } = poi;
       return {
         ...cleanPoi,
-        approved: false // Ensure unapproved status for draft POIs
+        approved: false, // Ensure unapproved status for draft POIs
+        mapId: poi.mapId || mapId // Use existing mapId or set current mapId
       };
     });
 
@@ -527,12 +620,18 @@ function loadPoisFromFile() {
     
     // Add approved POIs first
     processedApproved.forEach(poi => {
-      poiMap.set(poi.id, poi);
+      // Only add POIs for the current map
+      if (poi.mapId === mapId) {
+        poiMap.set(poi.id, poi);
+      }
     });
     
     // Add draft POIs, which will override any approved POIs with the same ID
     processedDraft.forEach(poi => {
-      poiMap.set(poi.id, poi);
+      // Only add POIs for the current map
+      if (poi.mapId === mapId) {
+        poiMap.set(poi.id, poi);
+      }
     });
     
     // Convert map back to array
@@ -577,6 +676,15 @@ function loadPoisFromFile() {
   .catch(error => {
     console.error('Error in POI loading process:', error);
     showNotification('Error loading POIs from server', true);
+    
+    // Try to load from local storage as a fallback
+    if (loadPoisFromStorage()) {
+      renderPois();
+    } else {
+      // If no local storage, initialize with empty array
+      pois = [];
+      renderPois();
+    }
     
     // Clear the flag in case of error
     window.preserveUnapprovedOnly = false;
@@ -839,7 +947,8 @@ function createAndSavePoi(type, x, y, description) {
     visible: true,
     approved: false,
     dateAdded: new Date().toISOString(),
-    sessionId: sessionId
+    sessionId: sessionId,
+    mapId: currentMapId // Add the current map ID
   };
   
   // Save the POI
@@ -1366,9 +1475,10 @@ function createAndSaveContextPoi(type, mapX, mapY, description, name) {
     visible: true,
     approved: false, // Mark new POIs as unapproved
     dateAdded: new Date().toISOString(),
-    sessionId: sessionId // Add session ID to track who created this POI
+    sessionId: sessionId, // Add session ID to track who created this POI
+    mapId: currentMapId // Add the current map ID
   };
-
+  
   // Add to local array temporarily
   pois.push(poi);
   renderPois();
@@ -1838,7 +1948,7 @@ function getPoiColor(type) {
 
 // Storage and sync functions
 function loadPoisFromStorage() {
-  const storedPois = localStorage.getItem(STORAGE_KEY);
+  const storedPois = localStorage.getItem(getStorageKey());
   if (storedPois) {
     try {
       pois = JSON.parse(storedPois);
@@ -1848,7 +1958,15 @@ function loadPoisFromStorage() {
         if (!poi.sessionId && !poi.approved) {
           poi.sessionId = sessionId;
         }
+        
+        // Ensure all POIs have a mapId (for backward compatibility)
+        if (!poi.mapId) {
+          poi.mapId = currentMapId;
+        }
       });
+      
+      // Filter POIs to only show those for the current map
+      pois = pois.filter(poi => poi.mapId === currentMapId);
       
       return true;
     } catch (e) {
@@ -1860,14 +1978,27 @@ function loadPoisFromStorage() {
 }
 
 function savePoisToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pois));
+  // Ensure all POIs have the current map ID before saving
+  pois.forEach(poi => {
+    if (!poi.mapId) {
+      poi.mapId = currentMapId;
+    }
+  });
+  
+  localStorage.setItem(getStorageKey(), JSON.stringify(pois));
 }
 
 function syncWithServer(force = false) {
   return new Promise((resolve) => {
     if (force || Date.now() - lastSyncTime > 60000) {
       showNotification('Syncing with server...');
-
+      
+      // Get the current map ID for filtering
+      const mapId = currentMapId;
+      
+      // Load POIs from server, filtered by current map ID
+      loadPoisFromFile();
+      
       setTimeout(() => {
         lastSyncTime = Date.now();
         savePoisToStorage();
@@ -3123,6 +3254,7 @@ $(document).on('keydown', function(e) {
 // Toggle heatmap visibility
 function toggleHeatmap() {
   isHeatmapVisible = !isHeatmapVisible;
+  const mapConfig = getCurrentMapConfig();
   
   // If the image is preloaded, toggle immediately
   // Otherwise, show a loading indicator
@@ -3136,7 +3268,7 @@ function toggleHeatmap() {
         $('#heatmap-overlay').show();
         heatmapImagePreloaded = true;
       };
-      heatmapImage.src = 'maps/Maynard_Heatmap_Transparent.png';
+      heatmapImage.src = mapConfig.heatmapImage;
     } else {
       $('#heatmap-overlay').hide();
     }
@@ -3151,6 +3283,7 @@ function toggleHeatmap() {
 // Toggle guide visibility
 function toggleGuide() {
   isGuideVisible = !isGuideVisible;
+  const mapConfig = getCurrentMapConfig();
   
   // If the image is preloaded, toggle immediately
   // Otherwise, show a loading indicator
@@ -3164,7 +3297,7 @@ function toggleGuide() {
         $('#guide-overlay').show();
         guideImagePreloaded = true;
       };
-      guideImage.src = 'maps/Maynard_Guide_Transparent.png';
+      guideImage.src = mapConfig.guideImage;
     } else {
       $('#guide-overlay').hide();
     }
@@ -3401,19 +3534,21 @@ function applyMapBoundaryConstraints(containerWidth, containerHeight) {
 
 // Function to preload overlay images
 function preloadOverlayImages() {
+  const mapConfig = getCurrentMapConfig();
+  
   // Preload heatmap image
   const heatmapImage = new Image();
   heatmapImage.onload = function() {
     heatmapImagePreloaded = true;
   };
-  heatmapImage.src = 'maps/Maynard_Heatmap_Transparent.png';
+  heatmapImage.src = mapConfig.heatmapImage;
   
   // Preload guide image
   const guideImage = new Image();
   guideImage.onload = function() {
     guideImagePreloaded = true;
   };
-  guideImage.src = 'maps/Maynard_Guide_Transparent.png';
+  guideImage.src = mapConfig.guideImage;
 }
 
 
@@ -3918,4 +4053,71 @@ function updateAdminUIState() {
   
   // Update UI elements that depend on admin status
   $('#show-unapproved-btn').toggle(isAdmin);
+}
+
+// Initialize the map selector
+function initMapSelector() {
+  // Enable the map selector
+  $('#map-select-overlay').prop('disabled', false);
+  
+  // Set the initial value based on the current map ID
+  const mapConfig = getCurrentMapConfig();
+  $('#map-select-overlay').val(mapConfig.name);
+  
+  // Add change event handler
+  $('#map-select-overlay').on('change', function() {
+    const selectedMapName = $(this).val();
+    
+    // Find the map ID for the selected map name
+    let newMapId = null;
+    Object.keys(MAP_CONFIG).forEach(mapId => {
+      if (MAP_CONFIG[mapId].name === selectedMapName) {
+        newMapId = parseInt(mapId);
+      }
+    });
+    
+    if (newMapId !== null && newMapId !== currentMapId) {
+      changeMap(newMapId);
+    }
+  });
+}
+
+// Change the current map
+function changeMap(newMapId) {
+  // Save current POIs before changing maps
+  savePoisToStorage();
+  
+  // Update current map ID
+  currentMapId = newMapId;
+  
+  // Clear selected POIs
+  selectedPois = [];
+  selectedPoi = null;
+  
+  // Reset heatmap and guide flags
+  heatmapImagePreloaded = false;
+  guideImagePreloaded = false;
+  isHeatmapVisible = false;
+  isGuideVisible = false;
+  $('#heatmap-overlay').hide();
+  $('#guide-overlay').hide();
+  $('#toggle-heatmap').removeClass('active');
+  $('#toggle-guide').removeClass('active');
+  
+  // Update the map selector value
+  const mapConfig = getCurrentMapConfig();
+  $('#map-select-overlay').val(mapConfig.name);
+  
+  // Reset map position and zoom
+  mapPosition = { x: 0, y: 0 };
+  currentZoom = DEFAULT_ZOOM;
+  
+  // Reinitialize the map with the new map
+  initMap();
+  
+  // Load POIs for the new map
+  loadPoisFromFile();
+  
+  // Show notification
+  showNotification(`Switched to ${mapConfig.displayName} map`);
 }

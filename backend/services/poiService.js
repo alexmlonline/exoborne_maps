@@ -22,11 +22,11 @@ class PoiService {
 
     // Save or update a POI
     async savePoi(poi) {
-        const { id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId } = poi;
+        const { id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId, mapId } = poi;
         
         const query = `
-            INSERT INTO pois (id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId, isDeleted)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+            INSERT INTO pois (id, name, type, description, x, y, visible, approved, dateAdded, lastEdited, sessionId, isDeleted, mapId)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
                 type = VALUES(type),
@@ -37,7 +37,8 @@ class PoiService {
                 approved = VALUES(approved),
                 lastEdited = VALUES(lastEdited),
                 sessionId = VALUES(sessionId),
-                isDeleted = FALSE
+                isDeleted = FALSE,
+                mapId = VALUES(mapId)
         `;
 
         const values = [
@@ -51,7 +52,8 @@ class PoiService {
             approved,
             formatDateForMySQL(dateAdded),
             lastEdited ? formatDateForMySQL(lastEdited) : null,
-            sessionId || null
+            sessionId || null,
+            mapId || null
         ];
 
         const [result] = await db.query(query, values);

@@ -1,9 +1,10 @@
 TODO
 =============
+FIX that saving the same poi with a changed description creates a new POI
 bodkin distilleries (a quest)
 enable basic search agains description
-add new maps
 fix zooming to map size when selecting groups
+add loading different overlays for each map (disable a button for those that don't exist)
 
 DONE
 ==========

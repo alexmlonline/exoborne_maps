@@ -319,12 +319,12 @@
     </div>
 
     <div class="map-selector-container">
-      <select id="map-select-overlay" disabled title="Additional maps will be added in future updates">
+      <select id="map-select-overlay">
         <option value="maynard" selected>Maynard</option>
-        <option value="agnesville" disabled>Agnesville [Coming Soon]</option>
-        <option value="sinkhole" disabled>Sinkhole [Coming Soon]</option>
+        <option value="agnesville">Agnesville</option>
+        <option value="sinkhole">Sinkhole</option>
       </select>
-      <div class="map-tooltip">More maps coming soon!</div>
+      <div class="map-tooltip">Select a map to view</div>
     </div>
 
     <div class="left-controls">
@@ -691,7 +691,7 @@
       border-radius: 4px;
       padding: 6px 12px;
       font-size: 14px;
-      cursor: not-allowed;
+      cursor: pointer;
       min-width: 150px;
       text-align: center;
       appearance: none;
