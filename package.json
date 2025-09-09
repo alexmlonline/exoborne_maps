@@ -1,14 +1,14 @@
 {
   "name": "exoborne-poi",
   "version": "1.0.0",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
     "prestart": "npm install",
     "build": "echo \"No build step required\"",
     "migrate": "node backend/scripts/migrateToDatabase.js",
-    "debug": "node --inspect backend/server.js"
+    "debug": "node --inspect server.js"
   },
   "keywords": [],
   "author": "Warhogy www.youtube.com/@warhogy",
