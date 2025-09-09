@@ -1,5 +1,5 @@
 const express = require('express');
-
+const mime = require('mime-types');
 
 // Load environment variables from .env file BEFORE other imports
 // This ensures environment variables are available to all modules
@@ -14,7 +14,7 @@ try {
 const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const poiService = require('./services/poiService');
+const poiService = require('./backend/services/poiService');
 
 
 console.log('Environment variables loaded from .env file');
@@ -44,7 +44,7 @@ console.log('- PORT:', process.env.PORT || '[Not set]');
 
 
 // Import secrets config AFTER environment variables are loaded
-const secretsConfig = require('./config/keyVault');
+const secretsConfig = require('./backend/config/keyVault');
 
 // Create Express app
 const app = express();
@@ -55,18 +55,29 @@ let ADMIN_PASSWORD = '';
 
 // Enable CORS for all routes
 app.use(cors());
-
-// Middleware to parse JSON bodies
 app.use(express.json());
 
-// Serve static files from the root directory
-app.use(express.static(path.join(__dirname, '..')));
+// Serve static files from the current directory with proper MIME types
+app.use(express.static(__dirname, {
+    setHeaders: (res, path) => {
+        const mimeType = mime.lookup(path);
+        if (mimeType) {
+            res.setHeader('Content-Type', mimeType);
+        }
+    }
+}));
 
 // Log all requests for debugging
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
+
+// Routes
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'default.html'));
+});
+
 
 // Initialize secrets from environment variables before starting the server
 async function initializeApp() {
@@ -102,6 +113,7 @@ async function initializeApp() {
         startServer();
     }
 }
+
 
 // Get approved POIs
 app.get('/api/pois-approved', async (req, res) => {
