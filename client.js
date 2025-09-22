@@ -283,6 +283,7 @@ function updateContextMenuHtml() {
           <option value="container">Locked Containers</option>
           <option value="respawn">Respawn</option>
           <option value="distilleries">Botkin Distilleries</option>
+          <option value="helicopters">Helicopters</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -1343,6 +1344,7 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="respawn">Respawn</option>
+          <option value="helicopters">Helicopters</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -1942,7 +1944,7 @@ function getPoiColor(type) {
     case 'fragment':
       return '#73a575'; // Green
     case 'machinery':
-      return '#d3d3d3'; // Light gray
+      return '#B0BEC5'; // Steel gray for EC Kits/Machinery Parts
     case 'electronics':
       return '#2196f3'; // Blue
     case 'secret':
@@ -1950,21 +1952,23 @@ function getPoiColor(type) {
     case 'ec-kits':
       return '#d8b4e2'; // Light purple
     case 'collectibles':
-      return '#FFB6C1'; // Light pink
+      return '#FF69B4'; // Hot pink for Collectibles
     case 'jewelries':
-      return '#9370DB'; // Medium Purple
+      return '#8E44AD'; // Royal purple for Jewelries
     case 'toolboxes-luggage':
-      return '#9c27b0'; // Toolboxes/Luggage (purple)
+      return '#FF9800'; // Safety orange for Toolboxes/Luggage
     case 'container':
       return '#9b8840'; // Olive
     case 'respawn':
-      return '#ff0000'; // Red
+      return '#76FF03'; // Neon lime for Respawns
     case 'distilleries':
-      return '#00CED1'; // Teal/Turquoise
+      return '#B87333'; // Copper for Distilleries
     case 'emp-jammer':
-      return '#e91e63'; // Home - Drawers (pink)
+      return '#8D6E63'; // Wood brown for Home - Drawers
     case 'vending':
-      return '#FF5252'; // Reddish color for Vending Machines
+      return '#00BCD4'; // Cyan for Vending Machines
+    case 'helicopters':
+      return '#29B6F6'; // Sky blue for Helicopters
     default:
       return '#ffffff'; // White for unknown types
   }
@@ -2719,6 +2723,80 @@ $(document).ready(function () {
       groupType: type,
       visible: checked
     });
+
+  // Category image tooltip (left sidebar groups)
+  // Mapping of POI types to preview images (relative to site root)
+  const CATEGORY_IMAGE_MAP = {
+    // Only image currently available per user: distilleries
+    'distilleries': 'images/pois/distillieires.jpg'
+  };
+  
+  // Simple cache of image load success
+  const categoryImageStatus = {}; // path -> 'ok' | 'err'
+  
+  // Ensure tooltip container exists
+  if ($('#category-tooltip').length === 0) {
+    $('body').append('<div id="category-tooltip" style="display:none;"><img alt="" /></div>');
+  }
+  const $tooltip = $('#category-tooltip');
+  const $tooltipImg = $('#category-tooltip img');
+  
+  function positionTooltip(pageX, pageY) {
+    const offset = 14;
+    let left = pageX + offset;
+    let top = pageY + offset;
+    const tipWidth = $tooltip.outerWidth();
+    const tipHeight = $tooltip.outerHeight();
+    const winWidth = $(window).width();
+    const winHeight = $(window).height();
+    if (left + tipWidth > winWidth - 10) left = pageX - tipWidth - offset;
+    if (top + tipHeight > winHeight - 10) top = pageY - tipHeight - offset;
+    $tooltip.css({ left: left + 'px', top: top + 'px' });
+  }
+  
+  function maybeShowCategoryTooltip(type, pageX, pageY) {
+    const path = CATEGORY_IMAGE_MAP[type];
+    if (!path) {
+      $tooltip.hide();
+      return;
+    }
+    const status = categoryImageStatus[path];
+    if (status === 'ok') {
+      $tooltipImg.attr('src', path);
+      $tooltip.show();
+      positionTooltip(pageX, pageY);
+      return;
+    }
+    if (status === 'err') {
+      $tooltip.hide();
+      return;
+    }
+    // Not loaded yet: try loading
+    const img = new Image();
+    img.onload = function() {
+      categoryImageStatus[path] = 'ok';
+      $tooltipImg.attr('src', path);
+      $tooltip.show();
+      positionTooltip(pageX, pageY);
+    };
+    img.onerror = function() {
+      categoryImageStatus[path] = 'err';
+      $tooltip.hide();
+    };
+    img.src = path;
+  }
+  
+  // Delegate hover events to all group labels in both categories
+  $(document).on('mouseenter', '.poi-group-header label', function(e) {
+    const type = $(this).closest('.poi-group-header').find('.group-checkbox').data('type');
+    maybeShowCategoryTooltip(String(type), e.pageX, e.pageY);
+  });
+  $(document).on('mousemove', '.poi-group-header label', function(e) {
+    if ($tooltip.is(':visible')) positionTooltip(e.pageX, e.pageY);
+  });
+  $(document).on('mouseleave', '.poi-group-header label', function() {
+    $tooltip.hide();
+  });
   });
 
   // Handle Select All button
