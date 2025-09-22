@@ -3704,46 +3704,13 @@ function preloadOverlayImages() {
 
 
 // Add this near the top of your file, after other initializations
-let appInsights;
-if (window.appInsights) {
-    appInsights = window.appInsights;
-    // Track initial page view with map details
-    appInsights.trackPageView({
-        name: 'ExoborneMaps',
-        properties: {
-            mapType: 'maynard'
-        }
-    });
-}
+let appInsights; // Application Insights disabled in default.html
 
 // Add telemetry tracking function
-function trackEvent(eventName, properties = {}) {
-    if (appInsights) {
-        // Add common properties to all events
-        const commonProps = {
-            sessionId: window.sessionId || 'unknown',
-            mapType: document.getElementById('map-select-overlay').value,
-            screenResolution: `${window.innerWidth}x${window.innerHeight}`
-        };
-        appInsights.trackEvent({ 
-            name: eventName, 
-            properties: { ...commonProps, ...properties }
-        });
-    }
-}
+function trackEvent(eventName, properties = {}) { /* no-op when appInsights is disabled */ }
 
 // Add error tracking function
-function trackError(error, properties = {}) {
-    if (appInsights) {
-        appInsights.trackException({
-            error: error,
-            properties: {
-                sessionId: window.sessionId || 'unknown',
-                ...properties
-            }
-        });
-    }
-}
+function trackError(error, properties = {}) { /* no-op when appInsights is disabled */ }
 
 // Track map interactions with throttling
 let lastMapInteraction = Date.now();
