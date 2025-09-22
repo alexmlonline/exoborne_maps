@@ -552,7 +552,8 @@ function initMap() {
   });
 
   // Initialize map selector
-  initMapSelector();
+  // Disable map selector (single map: Maynard) and set label
+  $('#map-select-overlay').prop('disabled', true).val(getCurrentMapConfig().name);
 }
 
 function loadPoisFromFile() {
@@ -2727,8 +2728,12 @@ $(document).ready(function () {
   // Category image tooltip (left sidebar groups)
   // Mapping of POI types to preview images (relative to site root)
   const CATEGORY_IMAGE_MAP = {
-    // Only image currently available per user: distilleries
-    'distilleries': 'images/pois/distillieires.jpg'
+    // Distilleries preview (try multiple common spellings/paths)
+    'distilleries': [
+      '/images/pois/distillieires.jpg',
+      '/images/pois/distilleries.jpg',
+      '/images/pois/Distilleries.jpg'
+    ]
   };
   
   // Simple cache of image load success
@@ -2755,35 +2760,35 @@ $(document).ready(function () {
   }
   
   function maybeShowCategoryTooltip(type, pageX, pageY) {
-    const path = CATEGORY_IMAGE_MAP[type];
-    if (!path) {
-      $tooltip.hide();
-      return;
-    }
-    const status = categoryImageStatus[path];
-    if (status === 'ok') {
-      $tooltipImg.attr('src', path);
-      $tooltip.show();
-      positionTooltip(pageX, pageY);
-      return;
-    }
-    if (status === 'err') {
-      $tooltip.hide();
-      return;
-    }
-    // Not loaded yet: try loading
-    const img = new Image();
-    img.onload = function() {
-      categoryImageStatus[path] = 'ok';
-      $tooltipImg.attr('src', path);
-      $tooltip.show();
-      positionTooltip(pageX, pageY);
+    const mapped = CATEGORY_IMAGE_MAP[type];
+    if (!mapped) { $tooltip.hide(); return; }
+    const candidates = Array.isArray(mapped) ? mapped : [mapped];
+    let index = 0;
+    const tryNext = () => {
+      if (index >= candidates.length) { $tooltip.hide(); return; }
+      const path = candidates[index++];
+      const status = categoryImageStatus[path];
+      if (status === 'ok') {
+        $tooltipImg.attr('src', path);
+        $tooltip.show();
+        positionTooltip(pageX, pageY);
+        return;
+      }
+      if (status === 'err') { tryNext(); return; }
+      const img = new Image();
+      img.onload = function() {
+        categoryImageStatus[path] = 'ok';
+        $tooltipImg.attr('src', path);
+        $tooltip.show();
+        positionTooltip(pageX, pageY);
+      };
+      img.onerror = function() {
+        categoryImageStatus[path] = 'err';
+        tryNext();
+      };
+      img.src = path;
     };
-    img.onerror = function() {
-      categoryImageStatus[path] = 'err';
-      $tooltip.hide();
-    };
-    img.src = path;
+    tryNext();
   }
   
   // Delegate hover events to all group labels in both categories
@@ -4191,29 +4196,8 @@ function updateAdminUIState() {
 
 // Initialize the map selector
 function initMapSelector() {
-  // Enable the map selector
-  $('#map-select-overlay').prop('disabled', false);
-  
-  // Set the initial value based on the current map ID
-  const mapConfig = getCurrentMapConfig();
-  $('#map-select-overlay').val(mapConfig.name);
-  
-  // Add change event handler
-  $('#map-select-overlay').on('change', function() {
-    const selectedMapName = $(this).val();
-    
-    // Find the map ID for the selected map name
-    let newMapId = null;
-    Object.keys(MAP_CONFIG).forEach(mapId => {
-      if (MAP_CONFIG[mapId].name === selectedMapName) {
-        newMapId = parseInt(mapId);
-      }
-    });
-    
-    if (newMapId !== null && newMapId !== currentMapId) {
-      changeMap(newMapId);
-    }
-  });
+  // Single-map mode: keep selector disabled and set value; no change handlers
+  $('#map-select-overlay').prop('disabled', true).val(getCurrentMapConfig().name);
 }
 
 // Change the current map
