@@ -274,8 +274,8 @@ function updateContextMenuHtml() {
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
           <option value="electronics">Home - Electronics</option>
-          <option value="emp-jammer">Home - Drawers</option>
           <option value="secret">Secret</option>
+          <option value="emp-jammer">Home - Drawers</option>
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="jewelries">Jewelries</option>
@@ -1338,10 +1338,10 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
           <option value="electronics">Home - Electronics</option>
+          <option value="emp-jammer">Home - Drawers</option>
           <option value="jewelries">Jewelries</option>
           <option value="toolboxes-luggage">Toolboxes/Luggage</option>          
           <option value="distilleries">Botkin Distilleries</option>
-          <option value="emp-jammer">Home - Drawers</option>          
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="respawn">Respawn</option>
