@@ -609,8 +609,7 @@
   }
   
   #context-poi-type option[value="machinery"] {
-    background-color: #272727;
-    color: #d3d3d3;
+    display: none;
   }
   
   #context-poi-type option[value="electronics"] {
@@ -639,8 +638,7 @@
   }
   
   #context-poi-type option[value="ec-kits"] {
-    background-color: #272727;
-    color: #d8b4e2; /* Light purple color for EC Kits */
+    display: none;
   }
   
   #context-poi-type option[value="collectibles"] {
@@ -653,9 +651,9 @@
     color: #9370DB; /* Medium Purple color for Jewelries */
   }
   
-  #context-poi-type option[value="loot"] {
+  #context-poi-type option[value="toolboxes-luggage"] {
     background-color: #272727;
-    color: #9c27b0; /* Purple color for Loot */
+    color: #9c27b0; /* Purple color for Toolboxes/Luggage */
   }
   
   #context-poi-type option[value="respawn"] {
@@ -728,7 +726,7 @@
   /* Style for POI type dropdown in Add POI form to show colors */
   #poi-type option[value="shelter"] {
     background-color: #272727;
-    color: #ffd700; /* Gold for Rebirth Shelter */
+    color: #ffd700; /* Gold for Mobile Shelter */
   }
   
   #poi-type option[value="bunker"] {
@@ -742,8 +740,7 @@
   }
   
   #poi-type option[value="machinery"] {
-    background-color: #272727;
-    color: #d3d3d3; /* Light gray for Machinery Parts */
+    display: none;
   }
   
   #poi-type option[value="electronics"] {
@@ -757,8 +754,7 @@
   }
   
   #poi-type option[value="ec-kits"] {
-    background-color: #272727;
-    color: #d8b4e2; /* Light purple for EC Kits */
+    display: none;
   }
   
   #poi-type option[value="collectibles"] {
@@ -771,9 +767,9 @@
     color: #9370DB; /* Medium Purple for Jewelries */
   }
   
-  #poi-type option[value="loot"] {
+  #poi-type option[value="toolboxes-luggage"] {
     background-color: #272727;
-    color: #9c27b0; /* Purple for Loot */
+    color: #9c27b0; /* Purple for Toolboxes/Luggage */
   }
   
   #poi-type option[value="respawn"] {

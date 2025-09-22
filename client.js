@@ -268,21 +268,21 @@ function updateContextMenuHtml() {
         <label for="context-poi-type" style="display: inline-block;">Type:</label>
         <span id="context-coordinates" style="display: inline-block; margin-left: 10px; color: #ccc; font-size: inherit;">X: 0, Y: 0</span>
         <select id="context-poi-type">
-          <option value="shelter">Rebirth Shelter</option>
+          <option value="shelter">Mobile Shelter</option>
           <option value="bunker">Rebirth Bunker</option>
           <option value="fragment">Clearance Fragment</option>
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
-          <option value="electronics">Electronics</option>
+          <option value="electronics">Home - Electronics</option>
+          <option value="emp-jammer">Home - Drawers</option>
           <option value="secret">Secret</option>
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="jewelries">Jewelries</option>
-          <option value="loot">Loot</option>
+          <option value="toolboxes-luggage">Toolboxes/Luggage</option>
           <option value="container">Locked Containers</option>
           <option value="respawn">Respawn</option>
           <option value="distilleries">Botkin Distilleries</option>
-          <option value="emp-jammer">EMP Jammer</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -595,8 +595,10 @@ function loadPoisFromFile() {
     const processedApproved = approvedPois.map(poi => {
       // Remove action property and sessionId if they exist
       const { action, sessionId, ...cleanPoi } = poi;
+      const normalizedType = (cleanPoi.type === 'loot') ? 'toolboxes-luggage' : cleanPoi.type;
       return {
         ...cleanPoi,
+        type: normalizedType,
         approved: true, // Ensure approved status for main POIs
         mapId: poi.mapId || mapId // Use existing mapId or set current mapId
       };
@@ -605,8 +607,10 @@ function loadPoisFromFile() {
     const processedDraft = draftPois.map(poi => {
       // Remove action property if it exists
       const { action, ...cleanPoi } = poi;
+      const normalizedType = (cleanPoi.type === 'loot') ? 'toolboxes-luggage' : cleanPoi.type;
       return {
         ...cleanPoi,
+        type: normalizedType,
         approved: false, // Ensure unapproved status for draft POIs
         mapId: poi.mapId || mapId // Use existing mapId or set current mapId
       };
@@ -1324,18 +1328,18 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
       <div class="context-menu-field">
         <label for="context-poi-type">Type:</label>
         <select id="context-poi-type">
-          <option value="shelter">Rebirth Shelter</option>
+          <option value="shelter">Mobile Shelter</option>
           <option value="bunker">Rebirth Bunker</option>
           <option value="container">Locked Containers</option>
           <option value="secret">Secret</option>          
           <option value="fragment">Clearance Fragment</option>
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
-          <option value="electronics">Electronics</option>
+          <option value="electronics">Home - Electronics</option>
           <option value="jewelries">Jewelries</option>
-          <option value="loot">Loot</option>          
+          <option value="toolboxes-luggage">Toolboxes/Luggage</option>          
           <option value="distilleries">Botkin Distilleries</option>
-          <option value="emp-jammer">EMP Jammer</option>          
+          <option value="emp-jammer">Home - Drawers</option>          
           <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="collectibles">Collectibles</option>
           <option value="respawn">Respawn</option>
@@ -1756,20 +1760,40 @@ function renderPois() {
           </div>
       `);
 
-      // Show tooltip with approval status
+      // Helper to get display name for a POI type
+      function getPoiDisplayName(type) {
+        switch (type) {
+          case 'shelter':
+            return 'Mobile Shelter';
+          case 'electronics':
+            return 'Home - Electronics';
+          case 'emp-jammer':
+            return 'Home - Drawers';
+          default:
+            return type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ');
+        }
+      }
+
+      // Show tooltip with type and approval status/description
       marker.on('mouseenter', function (e) {
           let shouldShowTooltip = false;
           let tooltipContent = '';
+          const typeLabel = getPoiDisplayName(poi.type);
+          const typeLine = `<div class="tooltip-description"><strong>${typeLabel}</strong></div>`;
           
           // Determine if and what tooltip content to show
           if (poi.description && poi.description.trim() !== '') {
               // Show description and approval status if needed
               const approvalText = poi.approved ? '' : '<div class="approval-status">[Awaiting Approval]</div>';
-              tooltipContent = `<div class="tooltip-description">${poi.description}</div>${approvalText}`;
+              tooltipContent = `${typeLine}<div class="tooltip-description">${poi.description}</div>${approvalText}`;
               shouldShowTooltip = true;
           } else if (!poi.approved) {
               // If no description but awaiting approval, only show approval status
-              tooltipContent = '<div class="approval-status">[Awaiting Approval]</div>';
+              tooltipContent = `${typeLine}<div class="approval-status">[Awaiting Approval]</div>`;
+              shouldShowTooltip = true;
+          } else {
+              // No description and approved - still show type
+              tooltipContent = typeLine;
               shouldShowTooltip = true;
           }
           
@@ -1929,8 +1953,8 @@ function getPoiColor(type) {
       return '#FFB6C1'; // Light pink
     case 'jewelries':
       return '#9370DB'; // Medium Purple
-    case 'loot':
-      return '#9c27b0'; // Purple
+    case 'toolboxes-luggage':
+      return '#9c27b0'; // Toolboxes/Luggage (purple)
     case 'container':
       return '#9b8840'; // Olive
     case 'respawn':
@@ -1938,7 +1962,7 @@ function getPoiColor(type) {
     case 'distilleries':
       return '#00CED1'; // Teal/Turquoise
     case 'emp-jammer':
-      return '#e91e63'; // Pink
+      return '#e91e63'; // Home - Drawers (pink)
     case 'vending':
       return '#FF5252'; // Reddish color for Vending Machines
     default:
@@ -2084,7 +2108,9 @@ function updateGroupsFromUrl() {
       // Wait a short moment for the POIs to be rendered
       setTimeout(() => {
         centerMapOnPoisOfType(groups[0]);
-        showNotification(`Centered map on ${groups[0]} POIs`);
+        const typeMap = { 'toolboxes-luggage': 'Toolboxes/Luggage' };
+        const label = typeMap[groups[0]] || groups[0];
+        showNotification(`Centered map on ${label} POIs`);
       }, 300);
     }
   }
@@ -2440,6 +2466,36 @@ $(document).ready(function () {
   // Add event handlers for coordinate inputs to check for nearby POIs
   $('#poi-x, #poi-y').on('input', checkNearbyPoisFromForm);
   $('#poi-type').on('change', checkNearbyPoisFromForm);
+  
+  // Paste handler: allow pasting "X Y" or "X, Y" to auto-fill both fields
+  // Examples: "00695 -0944", "+0695,+0944", "X: 695 Y: -944"
+  const tryApplyPastedCoordinatePair = (rawText) => {
+    if (!rawText || typeof rawText !== 'string') return false;
+    const text = rawText.trim();
+    // Extract up to two signed integer groups (1-5 digits) from the text
+    const matches = text.match(/[+\-]?\d{1,5}/g);
+    if (!matches || matches.length < 2) return false;
+    const xValue = parseInt(matches[0], 10);
+    const yValue = parseInt(matches[1], 10);
+    if (Number.isNaN(xValue) || Number.isNaN(yValue)) return false;
+    // Use existing formatter so UI values are consistent everywhere
+    $('#poi-x').val(formatCoordinate(xValue));
+    $('#poi-y').val(formatCoordinate(yValue));
+    // Trigger nearby check after auto-fill
+    checkNearbyPoisFromForm();
+    return true;
+  };
+  
+  $('#poi-x, #poi-y').on('paste', function(e) {
+    const clipboard = (e.originalEvent && e.originalEvent.clipboardData)
+      ? e.originalEvent.clipboardData
+      : window.clipboardData;
+    const pastedText = clipboard && clipboard.getData ? clipboard.getData('text') : '';
+    if (tryApplyPastedCoordinatePair(pastedText)) {
+      // Prevent default paste so it doesn't insert the full pair into one field
+      e.preventDefault();
+    }
+  });
   
   // Add event handlers for map interactions
   // ... rest of the existing code
@@ -3069,7 +3125,7 @@ function handleMapClick(e) {
 function updateZoomIndicator() {
   // Create build info indicator if it doesn't exist
   if ($('#build-info').length === 0) {
-    const buildInfo = $('<div id="build-info">Work in progress, CPT3 data</div>');
+    const buildInfo = $('<div id="build-info">Work in progress, PT2 data</div>');
     buildInfo.css({
       'position': 'absolute',
       'bottom': '40px',

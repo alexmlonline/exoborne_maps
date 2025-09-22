@@ -48,11 +48,17 @@
         </svg>
       </div>
       <h2>Welcome to Exoborne Community Maps!</h2>
-      <p>Join our community effort to create the most comprehensive resource for <span class="highlight">Exoborne</span> players!</p>
-      <p>This interactive map is built by the community, for the community, to make looting and exploration more efficient and enjoyable.</p>
+      <p><strong>PlayTest 2 (PT2) Access Only.</strong> This site is restricted to verified PT2 participants.</p>
+      <p>By using this site you agree to follow all <span class="highlight">NDA</span> requirements for the playtest.</p>
+
+      <div class="warning-message">
+        <strong>NDA Reminder</strong>
+        <p style="margin-top: 6px;">Clicking “Got it” means you acknowledge and agree to the PT2 NDA.</p>
+        <p>Any sharing of content, data, screenshots, links, or information <em>outside</em> the PT2 group violates the game’s NDA.</p>
+      </div>
       
       <ul class="feature-list">
-        <li>Discover locations of <span class="highlight">Rebirth Shelters, Bunkers, Clearance Fragments</span> and more</li>
+        <li>Discover locations of <span class="highlight">Mobile Shelters, Bunkers, Clearance Fragments</span> and more</li>
         <li>Change views using heatmaps, guides, and other visualization layers to gain deeper insights</li>
         <li><span class="highlight">Add your own discoveries</span> to help fellow players by double-clicking or right-clicking on the map</li>
         <li>Select multiple POIs with Ctrl+Click to plan your routes efficiently</li>
@@ -66,7 +72,7 @@
           <input type="checkbox" id="never-show-welcome" name="never-show-welcome">
           <label for="never-show-welcome">Never show again</label>
         </div>
-        <button class="got-it-btn" id="welcome-got-it-btn">Got it!</button>
+        <button class="got-it-btn" id="welcome-got-it-btn">Got it — I agree to the NDA</button>
       </div>
     </div>
   </div>
@@ -96,7 +102,7 @@
     <div id="poi-form">
       <label for="poi-type">Type:</label>
       <select id="poi-type">
-        <option value="shelter">Rebirth Shelter</option>
+        <option value="shelter">Mobile Shelter</option>
         <option value="bunker">Rebirth Bunker</option>
         <option value="container">Locked Containers</option>
         <option value="secret">Secret</option>
@@ -104,11 +110,11 @@
         <option value="machinery">EC Kits/Machinery Parts</option>
         <option value="machinery" style="display: none;">Machinery Parts</option>
         <option value="ec-kits" style="display: none;">EC Kits</option>
-        <option value="electronics">Electronics</option>
+        <option value="electronics">Home - Electronics</option>
         <option value="jewelries">Jewelries</option>
-        <option value="loot">Loot</option>        
+        <option value="toolboxes-luggage">Toolboxes/Luggage</option>        
         <option value="distilleries">Botkin Distilleries</option>
-        <option value="emp-jammer">EMP Jammers</option>
+        <option value="emp-jammer">Home - Drawers</option>
         <option value="vending">Vending Machines</option>
         <option value="collectibles">Collectibles</option>
         <option value="respawn">Respawns</option>
@@ -140,7 +146,7 @@
                 <div class="poi-group">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-shelter" class="group-checkbox" data-type="shelter" checked>
-                        <label for="group-shelter" style="color: #ffd700">Rebirth Shelters</label>
+                        <label for="group-shelter" style="color: #ffd700">Mobile Shelters</label>
                         <button class="select-only-btn" data-type="shelter">Only</button>
                     </div>
                 </div>
@@ -176,7 +182,7 @@
                         <button class="select-only-btn" data-type="fragment">Only</button>
                     </div>
                 </div>
-                <div class="poi-group">
+                <div class="poi-group" style="display: none;">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-machinery" class="group-checkbox" data-type="machinery" checked>
                         <label for="group-machinery" style="color: #d3d3d3">EC Kits/Machinery Parts</label>
@@ -186,10 +192,17 @@
                 <div class="poi-group">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-resource" class="group-checkbox" data-type="electronics" checked>
-                        <label for="group-resource" style="color: #2196f3">Electronics</label>
+                        <label for="group-resource" style="color: #2196f3">Home - Electronics</label>
                         <button class="select-only-btn" data-type="electronics">Only</button>
                     </div>
                 </div>
+                <div class="poi-group">
+                  <div class="poi-group-header">
+                      <input type="checkbox" id="group-emp-jammer" class="group-checkbox" data-type="emp-jammer" checked>
+                      <label for="group-emp-jammer" style="color: #e91e63">Home - Drawers</label>
+                      <button class="select-only-btn" data-type="emp-jammer">Only</button>
+                  </div>
+              </div>
                 <div class="poi-group">
                   <div class="poi-group-header">
                       <input type="checkbox" id="group-jewelries" class="group-checkbox" data-type="jewelries" checked>
@@ -197,11 +210,11 @@
                       <button class="select-only-btn" data-type="jewelries">Only</button>
                   </div>
               </div>
-              <div class="poi-group">
+                <div class="poi-group">
                 <div class="poi-group-header">
-                    <input type="checkbox" id="group-loot" class="group-checkbox" data-type="loot" checked>
-                    <label for="group-loot" style="color: #9c27b0">Loot</label>
-                    <button class="select-only-btn" data-type="loot">Only</button>
+                    <input type="checkbox" id="group-loot" class="group-checkbox" data-type="toolboxes-luggage" checked>
+                    <label for="group-loot" style="color: #9c27b0">Toolboxes/Luggage</label>
+                    <button class="select-only-btn" data-type="toolboxes-luggage">Only</button>
                 </div>
             </div>                              
                 <div class="poi-group">
@@ -211,13 +224,6 @@
                       <button class="select-only-btn" data-type="distilleries">Only</button>
                   </div>
               </div>
-              <div class="poi-group">
-                  <div class="poi-group-header">
-                      <input type="checkbox" id="group-emp-jammer" class="group-checkbox" data-type="emp-jammer" checked>
-                      <label for="group-emp-jammer" style="color: #e91e63">EMP Jammers</label>
-                      <button class="select-only-btn" data-type="emp-jammer">Only</button>
-                  </div>
-              </div>                
                 <div class="poi-group">
                     <div class="poi-group-header">
                         <input type="checkbox" id="group-vending" class="group-checkbox" data-type="vending" checked>
@@ -300,7 +306,7 @@
            </svg>
            Warhogy
         </a>
-        <a href="https://discord.gg/kd6RWd9f" target="_blank"
+        <a href="https://discord.gg/3dXZ5D4g3w" target="_blank"
            style="display: flex; align-items: center; color: #fff; text-decoration: none; padding: 10px 0;">
            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="margin-left: 10px;">
              <path fill="#5865F2" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>

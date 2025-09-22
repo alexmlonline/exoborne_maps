@@ -20,11 +20,12 @@ const poiService = require('./backend/services/poiService');
 console.log('Environment variables loaded from .env file');
 // Debug: Print loaded environment variables (without showing full values for security)
 console.log('Environment variables found:');
-
-console.log('- DB_HOST:',process.env.DB_HOST);
-console.log('- DB_USER:',process.env.DB_USER);
-console.log('- DB_PASSWORD:',process.env.DB_PASSWORD?.slice(0, 3));
-console.log('- DB_NAME:',process.env.DB_NAME);
+if (process.env.NODE_ENV !== 'production') {
+    console.log('- DB_HOST:', process.env.DB_HOST ? '[Set]' : '[Not set]');
+    console.log('- DB_USER:', process.env.DB_USER ? '[Set]' : '[Not set]');
+    console.log('- DB_PASSWORD:', process.env.DB_PASSWORD ? '[Set]' : '[Not set]');
+    console.log('- DB_NAME:', process.env.DB_NAME || '[Not set]');
+}
 
 
 if (process.env.JWT_SECRET) {
@@ -56,6 +57,14 @@ let ADMIN_PASSWORD = '';
 // Enable CORS for all routes
 app.use(cors());
 app.use(express.json());
+
+// Block access to backend source via static file serving
+app.use((req, res, next) => {
+    if (req.path.startsWith('/backend')) {
+        return res.status(404).end();
+    }
+    next();
+});
 
 // Serve static files from the current directory with proper MIME types
 app.use(express.static(__dirname, {
@@ -152,10 +161,7 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'healthy' });
 });
 
-// Root endpoint - serve the HTML file instead of JSON response
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../default.html'));
-});
+// (Removed duplicate root endpoint)
 
 // Endpoint to save POIs
 app.post('/api/save-poi', async (req, res) => {
@@ -170,7 +176,11 @@ app.post('/api/save-poi', async (req, res) => {
     try {
         // Check if the request has admin token
         const authHeader = req.headers.authorization;
-        const token = authHeader && authHeader.split(' ')[1] || poi.token;
+        const tokenFromHeader = authHeader && authHeader.split(' ')[1];
+        const token = tokenFromHeader || poi.token;
+        if (!tokenFromHeader && poi.token) {
+            console.warn('Deprecation: token provided in request body. Use Authorization header instead.');
+        }
         let isAdmin = false;
         
         if (token && JWT_SECRET) {
@@ -224,7 +234,11 @@ app.post('/api/delete-poi', async (req, res) => {
     try {
         // Check if the request has admin token
         const authHeader = req.headers.authorization;
-        const token = authHeader && authHeader.split(' ')[1] || req.body.token;
+        const tokenFromHeader = authHeader && authHeader.split(' ')[1];
+        const token = tokenFromHeader || req.body.token;
+        if (!tokenFromHeader && req.body && req.body.token) {
+            console.warn('Deprecation: token provided in request body. Use Authorization header instead.');
+        }
         let isAdmin = false;
         
         if (token && JWT_SECRET) {
@@ -272,7 +286,11 @@ app.post('/api/approve-poi', async (req, res) => {
 
     // Get token from Authorization header or from the request body
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1] || req.body.token;
+    const tokenFromHeader = authHeader && authHeader.split(' ')[1];
+    const token = tokenFromHeader || req.body.token;
+    if (!tokenFromHeader && req.body && req.body.token) {
+        console.warn('Deprecation: token provided in request body. Use Authorization header instead.');
+    }
     
     if (!token) {
         return res.status(401).json({ 
