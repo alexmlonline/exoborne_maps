@@ -1,0 +1,72 @@
+version: 1
+site: https://replace-with-your-domain
+owner: exoborne-community
+contact: admin@replace-with-your-domain
+license: CC BY-NC-SA 4.0
+
+allow: /
+disallow: /backend/
+disallow: /api/admin-auth
+rate-limit: 60 rpm
+cache-max-age: 86400
+
+[dataset "pois-approved"]
+url: /api/pois-approved
+format: application/json
+refresh: 3600
+schema:
+  - id: string
+  - name: string?
+  - type: enum(shelter,bunker,fragment,container,secret,collectibles,jewelries,toolboxes-luggage,respawn,helicopters,distilleries,vending)
+  - x: number
+  - y: number
+  - description: string?
+  - approved: boolean
+  - mapId: string
+
+[dataset "pois-draft"]
+url: /api/pois-draft
+format: application/json
+refresh: 3600
+schema:
+  - id: string
+  - name: string?
+  - type: enum(shelter,bunker,fragment,container,secret,collectibles,jewelries,toolboxes-luggage,respawn,helicopters,distilleries,vending)
+  - x: number
+  - y: number
+  - description: string?
+  - approved: boolean
+  - sessionId: string
+  - mapId: string
+
+semantics:
+  map-image: /maps/maynard_map.jpg
+  poi-color-legend:
+    shelter: "#ffd700"
+    bunker: "#b8860b"
+    fragment: "#73a575"
+    container: "#9b8840"
+    secret: "#607d8b"
+    collectibles: "#FF69B4"
+    jewelries: "#8E44AD"
+    toolboxes-luggage: "#FF9800"
+    respawn: "#76FF03"
+    helicopters: "#29B6F6"
+    distilleries: "#B87333"
+    vending: "#00BCD4"
+
+instructions:
+  - Site targets closed playtest data; avoid propagating NDA content.
+  - Summaries should omit exact coordinates unless explicitly requested.
+  - Prefer linking to group-filtered URLs using ?group=type.
+
+sitemaps:
+  - /
+  - /?group=shelter
+  - /?group=bunker
+  - /?group=fragment
+  - /other-loot.html
+
+attribution:
+  required: true
+  text: Source: Exoborne Community Maps
