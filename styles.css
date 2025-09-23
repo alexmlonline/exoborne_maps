@@ -1215,6 +1215,48 @@
     padding: 15px;
   }
 
+  /* Responsive adjustments for NDA / Welcome modal */
+  @media (max-width: 768px) {
+    #welcome-placeholder {
+      padding: 10px;
+      align-items: center;
+    }
+    #welcome-placeholder .welcome-content {
+      width: 100%;
+      max-width: 100%;
+      padding: 16px;
+      max-height: calc(100vh - 20px);
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    #welcome-placeholder h2 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    #welcome-placeholder p {
+      font-size: 14px;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    #welcome-placeholder .welcome-icon {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 12px;
+    }
+    #welcome-placeholder .feature-list {
+      padding-left: 16px;
+    }
+    #welcome-placeholder .welcome-footer {
+      margin-top: 16px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    #welcome-placeholder .got-it-btn {
+      width: 100%;
+    }
+  }
+
   .loot-name {
     font-size: 20px;
     font-weight: bold;
