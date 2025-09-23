@@ -1,7 +1,7 @@
 version: 1
-site: https://replace-with-your-domain
-owner: exoborne-community
-contact: admin@replace-with-your-domain
+site: https://exoborne-maps-gca5c4d5gneredac.australiaeast-01.azurewebsites.net/
+owner: Warhogy
+contact: info@warhogy.com
 license: CC BY-NC-SA 4.0
 
 allow: /
