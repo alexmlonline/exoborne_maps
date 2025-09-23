@@ -2041,11 +2041,13 @@ function syncWithServer(force = false) {
   });
 }
 
-function showNotification(message, isError = false) {
+function showNotification(message, isError = false, duration = 2000) {
   const notification = $('#notification');
+  // Stop any ongoing animations to avoid flicker and stacking
+  notification.stop(true, true);
   notification.text(message);
   notification.css('background-color', isError ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.8)');
-  notification.fadeIn(300).delay(2000).fadeOut(300);
+  notification.fadeIn(200).delay(duration).fadeOut(200);
 }
 
 function toggleGroupVisibility(type, visible) {
@@ -2112,10 +2114,11 @@ function updateGroupsFromUrl() {
     if (groups.length === 1) {
       // Wait a short moment for the POIs to be rendered
       setTimeout(() => {
+        // Center once, and show a single 5s notification
         centerMapOnPoisOfType(groups[0]);
         const typeMap = { 'toolboxes-luggage': 'Toolboxes/Luggage' };
         const label = typeMap[groups[0]] || groups[0];
-        showNotification(`Centered map on ${label} POIs`);
+        showNotification(`Centered map on ${label} POIs`, false, 5000);
       }, 300);
     }
   }
@@ -2729,6 +2732,9 @@ $(document).ready(function () {
   // Mapping of POI types to preview images (relative to site root)
   const CATEGORY_IMAGE_MAP = {
     // Distilleries preview (try multiple common spellings/paths)
+    'bunker': [
+      '/images/pois/bunker.jpg'
+    ],
     'distilleries': [
       '/images/pois/distillieires.jpg',
       '/images/pois/distilleries.jpg',
@@ -3475,6 +3481,16 @@ function centerMapOnSelectedPois() {
       // Center the map on this POI
       const containerWidth = $('#map-container').width();
       const containerHeight = $('#map-container').height();
+
+      // Ensure we zoom in at least to a sensible level without going below viewport minimum
+      const minZoomWidth = containerWidth / MAP_WIDTH;
+      const minZoomHeight = containerHeight / MAP_HEIGHT;
+      const minViewportZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
+      const desiredZoom = Math.max(minViewportZoom, 1.2);
+      // Only increase zoom; don't forcibly zoom out if already closer
+      if (currentZoom < desiredZoom) {
+        currentZoom = desiredZoom;
+      }
       
       mapPosition.x = (containerWidth / 2) - (realX * currentZoom);
       mapPosition.y = (containerHeight / 2) - (realY * currentZoom);
@@ -3485,9 +3501,9 @@ function centerMapOnSelectedPois() {
       // Update the map transform
       updateMapTransform();
       
-      showNotification(`Centered map on selected POI`);
+      showNotification(`Centered map on selected POI`, false, 5000);
     }
-  } else {
+    } else {
     // If multiple POIs are selected, calculate the bounding box
     let minX = Infinity;
     let minY = Infinity;
@@ -3536,10 +3552,15 @@ function centerMapOnSelectedPois() {
     // Calculate zoom levels that would fit the content in the container
     const zoomX = (containerWidth - padding) / safeWidth;
     const zoomY = (containerHeight - padding) / safeHeight;
+
+    // Enforce a minimum zoom so the map never renders smaller than the viewport
+    const minZoomWidth = containerWidth / MAP_WIDTH;
+    const minZoomHeight = containerHeight / MAP_HEIGHT;
+    const minViewportZoom = Math.max(0.2, Math.min(minZoomWidth, minZoomHeight));
     
-    // Use the smaller zoom level to ensure all POIs are visible
-    // Reduced the cap from 1.5 to 1.2 to allow more zoom-out for widely spread POIs
-    const newZoom = Math.min(zoomX, zoomY, 1.2);
+    // Use the smaller zoom level to ensure all POIs are visible, but not below viewport minimum
+    // Keep the existing upper cap of 1.2 to avoid over-zooming
+    const newZoom = Math.max(minViewportZoom, Math.min(zoomX, zoomY, 1.2));
     
     // Set the new zoom level
     currentZoom = newZoom;
@@ -3554,7 +3575,7 @@ function centerMapOnSelectedPois() {
     // Update the map transform
     updateMapTransform();
     
-    showNotification(`Centered map on ${selectedPois.length} selected POIs`);
+    showNotification(`Centered map on ${selectedPois.length} selected POIs`, false, 5000);
   }
 }
 
@@ -3603,8 +3624,8 @@ function centerMapOnPoisOfType(type) {
     // Restore original selectedPois
     selectedPois = originalSelectedPois;
     
-    // Show notification with count
-    showNotification(`Centered map on ${visiblePois.length} ${type} POIs`);
+    // Show notification with count (single 5s)
+    showNotification(`Centered map on ${visiblePois.length} ${type} POIs`, false, 5000);
   } else {
     showNotification(`No visible ${type} POIs to center on`, true);
   }
@@ -3632,8 +3653,8 @@ function centerMapOnUnapprovedPois() {
     // Restore original selectedPois
     selectedPois = originalSelectedPois;
     
-    // Show notification with count
-    showNotification(`Centered map on ${visiblePois.length} unapproved POIs`);
+    // Show notification with count (single 5s)
+    showNotification(`Centered map on ${visiblePois.length} unapproved POIs`, false, 5000);
   } else {
     showNotification('No visible unapproved POIs to center on', true);
   }
@@ -3641,11 +3662,8 @@ function centerMapOnUnapprovedPois() {
 
 // Function to apply boundary constraints to the map position
 function applyMapBoundaryConstraints(containerWidth, containerHeight) {
-  // Get the current state - are we centering on POIs?
-  const isCenteringOnPois = selectedPois.length > 0;
-  
-  // Allow some extra margin when centering on POIs
-  const extraMargin = isCenteringOnPois ? 0.3 : 0; // 30% extra margin when centering (increased from 20%)
+  // Do not allow any extra margin beyond map bounds when centering
+  const extraMargin = 0;
   
   // Ensure the map doesn't go beyond the viewport boundaries
   if (MAP_WIDTH * currentZoom < containerWidth) {
