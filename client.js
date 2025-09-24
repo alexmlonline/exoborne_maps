@@ -2727,6 +2727,7 @@ $(document).ready(function () {
       groupType: type,
       visible: checked
     });
+  });
 
   // Category image tooltip (left sidebar groups)
   // Mapping of POI types to preview images (relative to site root)
@@ -2735,6 +2736,12 @@ $(document).ready(function () {
     'bunker': [
       '/images/pois/bunker.jpg'
     ],
+    'fragment': [
+      '/images/pois/fragment.jpg'
+    ],
+    'toolboxes-luggage': [
+      '/images/pois/luggage.jpg'
+    ],
     'distilleries': [
       '/images/pois/distillieires.jpg',
       '/images/pois/distilleries.jpg',
@@ -2742,15 +2749,25 @@ $(document).ready(function () {
     ]
   };
   
+  // Optional tips per category, shown as a single line under the image
+  // Update texts here to change tips globally
+  const CATEGORY_TIPS = {
+    // Example:
+    'bunker': 'You need 100+ clearance charges',
+    'fragment': 'Emits sound so can be heard from far',
+    'distilleries': 'You can see them from far by dark smoke'
+  };
+  
   // Simple cache of image load success
   const categoryImageStatus = {}; // path -> 'ok' | 'err'
   
   // Ensure tooltip container exists
   if ($('#category-tooltip').length === 0) {
-    $('body').append('<div id="category-tooltip" style="display:none;"><img alt="" /></div>');
+    $('body').append('<div id="category-tooltip" style="display:none;"><img alt="" /><div class="tip"></div></div>');
   }
   const $tooltip = $('#category-tooltip');
   const $tooltipImg = $('#category-tooltip img');
+  const $tooltipTip = $('#category-tooltip .tip');
   
   function positionTooltip(pageX, pageY) {
     const offset = 14;
@@ -2765,6 +2782,15 @@ $(document).ready(function () {
     $tooltip.css({ left: left + 'px', top: top + 'px' });
   }
   
+  function setCategoryTip(type) {
+    const tip = CATEGORY_TIPS[type];
+    if (tip && typeof tip === 'string' && tip.trim().length > 0) {
+      $tooltipTip.text('Tip: ' + tip).show();
+    } else {
+      $tooltipTip.text('').hide();
+    }
+  }
+  
   function maybeShowCategoryTooltip(type, pageX, pageY) {
     const mapped = CATEGORY_IMAGE_MAP[type];
     if (!mapped) { $tooltip.hide(); return; }
@@ -2776,6 +2802,7 @@ $(document).ready(function () {
       const status = categoryImageStatus[path];
       if (status === 'ok') {
         $tooltipImg.attr('src', path);
+        setCategoryTip(type);
         $tooltip.show();
         positionTooltip(pageX, pageY);
         return;
@@ -2785,6 +2812,7 @@ $(document).ready(function () {
       img.onload = function() {
         categoryImageStatus[path] = 'ok';
         $tooltipImg.attr('src', path);
+        setCategoryTip(type);
         $tooltip.show();
         positionTooltip(pageX, pageY);
       };
@@ -2807,7 +2835,6 @@ $(document).ready(function () {
   });
   $(document).on('mouseleave', '.poi-group-header label', function() {
     $tooltip.hide();
-  });
   });
 
   // Handle Select All button
