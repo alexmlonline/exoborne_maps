@@ -76,6 +76,12 @@ app.use(express.static(__dirname, {
     }
 }));
 
+// Explicitly serve /.well-known/ai.txt (Express static ignores dotfiles by default)
+app.get('/.well-known/ai.txt', (req, res) => {
+    res.type('text/plain');
+    res.sendFile(path.join(__dirname, 'ai.txt'));
+});
+
 // Log all requests for debugging
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
