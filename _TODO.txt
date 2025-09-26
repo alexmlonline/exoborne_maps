@@ -1,0 +1,7 @@
+WIKI
+    quest lines with map locations being mentioned
+    map descriptions, safe routes and loot spots
+    scarab fighting tactics
+    NPC descriptions and fighting tactics
+    economy of metal scraps vs using the same slot for the loot (at which cost it's better to get loot of $xxx vs scraps for crafting)
+    exo rigs mods meta
