@@ -1,6 +1,8 @@
-// Global offsets
-let offsetX = 602; // Change this to your desired X offset
-let offsetY = -248; // Change this to your desired Y offset
+// Global offsets and scales
+let offsetX = 602; // Default for Maynard; overridden per map
+let offsetY = -248; // Default for Maynard; overridden per map
+let scaleX = 1.664; // Units per pixel (X); overridden per map
+let scaleY = 1.664; // Units per pixel (Y); overridden per map
 
 // Map configuration
 const MAP_IDS = {
@@ -22,7 +24,9 @@ const MAP_CONFIG = {
     hasGuide: true,
     // Default coordinate origin offsets for this map (pixel space before scaling)
     offsetX: 602,
-    offsetY: -248
+    offsetY: -248,
+    scaleX: 1.664,
+    scaleY: 1.664
   },
   [MAP_IDS.AGNESVILLE]: {
     name: 'agnesville',
@@ -36,7 +40,9 @@ const MAP_CONFIG = {
     hasGuide: false,
     // Defaults for Agnesville; adjust via calibration panel and then bake in
     offsetX: 887,
-    offsetY: -764
+    offsetY: -764,
+    scaleX: 0.97,
+    scaleY: 0.96
   },
   [MAP_IDS.SINKHOLE]: {
     name: 'sinkhole',
@@ -47,7 +53,9 @@ const MAP_CONFIG = {
     heatmapImage: 'maps/Sinkhole_Heatmap_Transparent.png',
     guideImage: 'maps/Sinkhole_Guide_Transparent.png',
     offsetX: 0,
-    offsetY: 0
+    offsetY: 0,
+    scaleX: 1.664,
+    scaleY: 1.664
   }
 };
 
@@ -78,12 +86,14 @@ function loadOffsetsForCurrentMap() {
   }
   offsetX = (persisted && typeof persisted.offsetX === 'number') ? persisted.offsetX : (typeof cfg.offsetX === 'number' ? cfg.offsetX : offsetX);
   offsetY = (persisted && typeof persisted.offsetY === 'number') ? persisted.offsetY : (typeof cfg.offsetY === 'number' ? cfg.offsetY : offsetY);
+  scaleX = (persisted && typeof persisted.scaleX === 'number') ? persisted.scaleX : (typeof cfg.scaleX === 'number' ? cfg.scaleX : scaleX);
+  scaleY = (persisted && typeof persisted.scaleY === 'number') ? persisted.scaleY : (typeof cfg.scaleY === 'number' ? cfg.scaleY : scaleY);
   updateOriginCrosshair();
 }
 
 function saveOffsetsForCurrentMap() {
   const key = getOffsetStorageKey();
-  localStorage.setItem(key, JSON.stringify({ offsetX, offsetY }));
+  localStorage.setItem(key, JSON.stringify({ offsetX, offsetY, scaleX, scaleY }));
 }
 
 // Ensure crosshair element exists
@@ -411,20 +421,21 @@ function updateContextMenuHtml() {
         <select id="context-poi-type">
           <option value="shelter">Mobile Shelter</option>
           <option value="bunker">Rebirth Bunker</option>
+          <option value="container">Locked Containers</option>
+          <option value="secret">Secret</option>
           <option value="fragment">Clearance Fragment</option>
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
-          <option value="electronics">Home - Electronics</option>
-          <option value="secret">Secret</option>
-          <option value="emp-jammer">Home - Drawers</option>
           <option value="ec-kits" style="display: none;">EC Kits</option>
-          <option value="collectibles">Collectibles</option>
+          <option value="electronics">Home - Electronics</option>
           <option value="jewelries">Jewelries</option>
           <option value="toolboxes-luggage">Toolboxes/Luggage</option>
-          <option value="container">Locked Containers</option>
-          <option value="respawn">Respawn</option>
           <option value="distilleries">Botkin Distilleries</option>
           <option value="helicopters">Helicopters</option>
+          <option value="emp-jammer">Home - Drawers</option>
+          <option value="vending">Vending Machines</option>
+          <option value="collectibles">Collectibles</option>
+          <option value="respawn">Respawns</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -605,35 +616,35 @@ function initMap() {
   // Initialize zoom indicator
   updateZoomIndicator();
 
-  // Mouse events for dragging
-  mapElement.on('mousedown', startDragging);
-  $(document).on('mousemove', dragMap);
-  $(document).on('mouseup', stopDragging);
+  // Mouse events for dragging (de-duplicate handlers)
+  mapElement.off('mousedown', startDragging).on('mousedown', startDragging);
+  $(document).off('mousemove', dragMap).on('mousemove', dragMap);
+  $(document).off('mouseup', stopDragging).on('mouseup', stopDragging);
 
   // Map controls
-  $('#zoom-in').on('click', () => {
+  $('#zoom-in').off('click').on('click', () => {
     const containerWidth = $('#map-container').width();
     const containerHeight = $('#map-container').height();
     changeZoom(0.2, containerWidth / 2, containerHeight / 2);
   });
 
-  $('#zoom-out').on('click', () => {
+  $('#zoom-out').off('click').on('click', () => {
     const containerWidth = $('#map-container').width();
     const containerHeight = $('#map-container').height();
     changeZoom(-0.2, containerWidth / 2, containerHeight / 2);
   });
 
-  $('#reset-view').on('click', resetMapView);
+  $('#reset-view').off('click', resetMapView).on('click', resetMapView);
 
   // Heatmap toggle
-  $('#toggle-heatmap').on('click', toggleHeatmap);
+  $('#toggle-heatmap').off('click', toggleHeatmap).on('click', toggleHeatmap);
   
   // Keep origin crosshair in sync with transforms (only when calibration is enabled)
   window.__calibrationEnabled = isCalibrationEnabled();
   if (window.__calibrationEnabled) {
     updateOriginCrosshair();
-    $('#map-container').off('mousemove.origin').on('mousemove.origin', function(){ updateOriginCrosshair(); });
-    $(window).off('resize.origin').on('resize.origin', function(){ updateOriginCrosshair(); });
+  $('#map-container').off('mousemove.origin').on('mousemove.origin', function(){ updateOriginCrosshair(); });
+  $(window).off('resize.origin').on('resize.origin', function(){ updateOriginCrosshair(); });
   } else {
     $('#map-container').off('mousemove.origin');
     $(window).off('resize.origin');
@@ -641,21 +652,21 @@ function initMap() {
   }
 
   // Guide toggle
-  $('#toggle-guide').on('click', toggleGuide);
+  $('#toggle-guide').off('click', toggleGuide).on('click', toggleGuide);
   
   // POI controls
-  $('#add-mode-btn').on('click', toggleAddMode);
-  $('#refresh-btn').on('click', function() {
+  $('#add-mode-btn').off('click', toggleAddMode).on('click', toggleAddMode);
+  $('#refresh-btn').off('click').on('click', function() {
     syncWithServer(true).then(() => {
       // Process URL selected POIs after sync is complete
       processUrlSelectedPois();
     });
   });
-  $('#save-poi-btn').on('click', savePoi);
-  $('#cancel-poi-btn').on('click', cancelAddPoi);
+  $('#save-poi-btn').off('click', savePoi).on('click', savePoi);
+  $('#cancel-poi-btn').off('click', cancelAddPoi).on('click', cancelAddPoi);
   
   // Map click handler for adding POIs
-  $('#game-map').on('click', handleMapClick);
+  $('#game-map').off('click', handleMapClick).on('click', handleMapClick);
   
   // Double click handler for adding POIs
   $('#game-map').on('dblclick', function(e) {
@@ -670,9 +681,9 @@ function initMap() {
       const clickX = e.pageX - mapOffset.left;
       const clickY = e.pageY - mapOffset.top;
       
-      // Convert screen coordinates to map coordinates
-      const mapX = Math.round((clickX / currentZoom - offsetX) * 1.664);
-      const mapY = Math.round(((clickY / currentZoom - offsetY - MAP_HEIGHT) * 1.664));
+      // Convert screen coordinates to game coordinates using per-map scales
+      const mapX = Math.round((clickX / currentZoom - offsetX) * scaleX);
+      const mapY = Math.round(((clickY / currentZoom - offsetY - MAP_HEIGHT) * scaleY));
       
       showContextMenu(e.pageX, e.pageY, mapX, mapY);
     }
@@ -687,9 +698,9 @@ function initMap() {
     const clickX = e.pageX - mapOffset.left;
     const clickY = e.pageY - mapOffset.top;
     
-    // Convert screen coordinates to map coordinates
-    const mapX = Math.round((clickX / currentZoom - offsetX) * 1.664);
-    const mapY = Math.round(((clickY / currentZoom - offsetY - MAP_HEIGHT) * 1.664));
+    // Convert screen coordinates to game coordinates using per-map scales
+    const mapX = Math.round((clickX / currentZoom - offsetX) * scaleX);
+    const mapY = Math.round(((clickY / currentZoom - offsetY - MAP_HEIGHT) * scaleY));
     
     // Show the context menu
     showContextMenu(e.pageX, e.pageY, mapX, mapY);
@@ -895,8 +906,8 @@ function startDragging(e) {
     // Apply the offsets and scaling factor for the form
     const mapX = Math.round(clickX);
     const mapY = Math.round(clickY - MAP_HEIGHT);
-    const adjustedX = (mapX - offsetX) * 1.664;
-    const adjustedY = (mapY - offsetY) * 1.664;
+    const adjustedX = (mapX - offsetX) * scaleX;
+    const adjustedY = (mapY - offsetY) * scaleY;
 
     // Set the coordinates in the form
     $('#poi-x').val(formatCoordinate(adjustedX));
@@ -1518,15 +1529,16 @@ function showContextMenu(screenX, screenY, mapX, mapY) {
           <option value="fragment">Clearance Fragment</option>
           <option value="machinery">EC Kits/Machinery Parts</option>
           <option value="machinery" style="display: none;">Machinery Parts</option>
+          <option value="ec-kits" style="display: none;">EC Kits</option>
           <option value="electronics">Home - Electronics</option>
-          <option value="emp-jammer">Home - Drawers</option>
           <option value="jewelries">Jewelries</option>
           <option value="toolboxes-luggage">Toolboxes/Luggage</option>          
           <option value="distilleries">Botkin Distilleries</option>
-          <option value="ec-kits" style="display: none;">EC Kits</option>
-          <option value="collectibles">Collectibles</option>
-          <option value="respawn">Respawn</option>
           <option value="helicopters">Helicopters</option>
+          <option value="emp-jammer">Home - Drawers</option>
+          <option value="vending">Vending Machines</option>
+          <option value="collectibles">Collectibles</option>
+          <option value="respawn">Respawns</option>
         </select>
       </div>
       <div class="context-menu-field">
@@ -1844,13 +1856,13 @@ function saveEditedPoi() {
 // Function to find overlapping POIs at a specific location
 function findOverlappingPois(x, y, threshold = 10) {
   // Convert coordinates to screen coordinates
-  const screenX = (x / 1.664) + offsetX;
-  const screenY = (y / 1.664) + offsetY + MAP_HEIGHT;
+  const screenX = (x / scaleX) + offsetX;
+  const screenY = (y / scaleY) + offsetY + MAP_HEIGHT;
   
   // Find all POIs that are within the threshold distance
   return pois.filter(p => p.visible && 
-    Math.abs((p.x / 1.664) + offsetX - screenX) < threshold && 
-    Math.abs((p.y / 1.664) + offsetY + MAP_HEIGHT - screenY) < threshold);
+    Math.abs((p.x / scaleX) + offsetX - screenX) < threshold && 
+    Math.abs((p.y / scaleY) + offsetY + MAP_HEIGHT - screenY) < threshold);
 }
 
 // Rendering functions
@@ -1876,8 +1888,8 @@ function renderPois() {
       //const realX = 585
       //const realY = 1180;
 
-      const realX = (poi.x / 1.664) + offsetX;
-      const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
+      const realX = (poi.x / scaleX) + offsetX;
+      const realY = (poi.y / scaleY) + offsetY + MAP_HEIGHT;
 
       // Check if this POI was created in the current session
       const isCurrentSession = poi.sessionId === sessionId;
@@ -2631,6 +2643,8 @@ $(document).ready(function () {
   });
 
   // Initialize the map
+  // Apply map from URL param before initializing
+  applyMapFromUrlParam();
   initMap();
   
   // Initialize session ID
@@ -3245,8 +3259,8 @@ $(document).ready(function () {
     const mapY = Math.round(((e.pageY - mapOffset.top) / currentZoom) - MAP_HEIGHT);
   
     // Apply the offsets
-    const adjustedX = (mapX - offsetX) * 1.664;
-    const adjustedY = (mapY - offsetY) * 1.664;
+    const adjustedX = (mapX - offsetX) * scaleX;
+    const adjustedY = (mapY - offsetY) * scaleY;
 
     // Determine precision based on zoom level
     // Higher zoom = more decimal places
@@ -3365,8 +3379,8 @@ function handleMapClick(e) {
     // Apply the offsets and scaling factor for the form
     const mapX = Math.round(clickX);
     const mapY = Math.round(clickY - MAP_HEIGHT);
-    const adjustedX = (mapX - offsetX) * 1.664;
-    const adjustedY = (mapY - offsetY) * 1.664;
+    const adjustedX = (mapX - offsetX) * scaleX;
+    const adjustedY = (mapY - offsetY) * scaleY;
 
     // Set the coordinates in the form
     $('#poi-x').val(formatCoordinate(adjustedX));
@@ -3404,9 +3418,9 @@ function handleMapClick(e) {
       const mapX = Math.round(clickX);
       const mapY = Math.round(clickY - MAP_HEIGHT);
       
-      // Apply the offsets and scaling factor
-      const adjustedX = (mapX - offsetX) * 1.664;
-      const adjustedY = (mapY - offsetY) * 1.664;
+      // Apply the offsets and scaling factor (per map)
+      const adjustedX = (mapX - offsetX) * scaleX;
+      const adjustedY = (mapY - offsetY) * scaleY;
       
       showContextMenu(e.pageX, e.pageY, adjustedX, adjustedY);
     }
@@ -3693,8 +3707,8 @@ function centerMapOnSelectedPois() {
     const poi = pois.find(p => p.id === poiId);
     if (poi) {
       // Calculate the real coordinates on the map
-      const realX = (poi.x / 1.664) + offsetX;
-      const realY = (poi.y / 1.664) + offsetY + MAP_HEIGHT;
+      const realX = (poi.x / scaleX) + offsetX;
+      const realY = (poi.y / scaleY) + offsetY + MAP_HEIGHT;
       
       // Center the map on this POI
       const containerWidth = $('#map-container').width();
@@ -3982,6 +3996,17 @@ window.addEventListener('unhandledrejection', function(event) {
         type: 'UnhandledPromiseRejection'
     });
 });
+
+// Read 'map' parameter from URL and set currentMapId accordingly (defaults to Maynard)
+function applyMapFromUrlParam() {
+  const params = new URLSearchParams(window.location.search);
+  const mapName = params.get('map');
+  if (!mapName) return;
+  const targetId = Object.values(MAP_IDS).find((id) => MAP_CONFIG[id] && MAP_CONFIG[id].name === mapName);
+  if (targetId) {
+    currentMapId = targetId;
+  }
+}
 
 // Function to check URL parameters for initial state
 function checkUrlParameters() {
@@ -4478,6 +4503,11 @@ function changeMap(newMapId) {
   loadOffsetsForCurrentMap();
   updateOriginCrosshair();
   
+  // Update URL with selected map name
+  const url = new URL(window.location.href);
+  url.searchParams.set('map', mapConfig.name);
+  window.history.replaceState({}, document.title, url.toString());
+
   // Show notification
   showNotification(`Switched to ${mapConfig.displayName} map`);
 }
