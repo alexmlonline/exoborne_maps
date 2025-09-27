@@ -17,7 +17,12 @@ const MAP_CONFIG = {
     height: 1430,
     backgroundImage: 'maps/maynard_map.jpg',
     heatmapImage: 'maps/Maynard_Heatmap_Transparent.png',
-    guideImage: 'maps/Maynard_Guide_Transparent.png'
+    guideImage: 'maps/Maynard_Guide_Transparent.png',
+    hasHeatmap: true,
+    hasGuide: true,
+    // Default coordinate origin offsets for this map (pixel space before scaling)
+    offsetX: 602,
+    offsetY: -248
   },
   [MAP_IDS.AGNESVILLE]: {
     name: 'agnesville',
@@ -26,7 +31,12 @@ const MAP_CONFIG = {
     height: 1430,
     backgroundImage: 'maps/agnesville_map.jpg',
     heatmapImage: 'maps/Agnesville_Heatmap_Transparent.png',
-    guideImage: 'maps/Agnesville_Guide_Transparent.png'
+    guideImage: 'maps/Agnesville_Guide_Transparent.png',
+    hasHeatmap: false,
+    hasGuide: false,
+    // Defaults for Agnesville; adjust via calibration panel and then bake in
+    offsetX: 887,
+    offsetY: -764
   },
   [MAP_IDS.SINKHOLE]: {
     name: 'sinkhole',
@@ -35,9 +45,140 @@ const MAP_CONFIG = {
     height: 1430,
     backgroundImage: 'maps/sinkhole_map.jpg',
     heatmapImage: 'maps/Sinkhole_Heatmap_Transparent.png',
-    guideImage: 'maps/Sinkhole_Guide_Transparent.png'
+    guideImage: 'maps/Sinkhole_Guide_Transparent.png',
+    offsetX: 0,
+    offsetY: 0
   }
 };
+
+// Local storage key for per-map offset overrides
+function getOffsetStorageKey() {
+  const name = getCurrentMapConfig().name;
+  return `map_offsets_${name}`;
+}
+
+// Check if calibration tools should be enabled (dev/local or calib flag)
+function isCalibrationEnabled() {
+  try {
+    const enabledByFlag = new URLSearchParams(window.location.search).get('calib') === '1';
+    return isLocalhost || enabledByFlag;
+  } catch (e) {
+    return isLocalhost;
+  }
+}
+
+// Load offsetX/offsetY for current map (defaults from MAP_CONFIG, override from localStorage)
+function loadOffsetsForCurrentMap() {
+  const cfg = getCurrentMapConfig();
+  let persisted = null;
+  try {
+    persisted = JSON.parse(localStorage.getItem(getOffsetStorageKey()) || 'null');
+  } catch (e) {
+    persisted = null;
+  }
+  offsetX = (persisted && typeof persisted.offsetX === 'number') ? persisted.offsetX : (typeof cfg.offsetX === 'number' ? cfg.offsetX : offsetX);
+  offsetY = (persisted && typeof persisted.offsetY === 'number') ? persisted.offsetY : (typeof cfg.offsetY === 'number' ? cfg.offsetY : offsetY);
+  updateOriginCrosshair();
+}
+
+function saveOffsetsForCurrentMap() {
+  const key = getOffsetStorageKey();
+  localStorage.setItem(key, JSON.stringify({ offsetX, offsetY }));
+}
+
+// Ensure crosshair element exists
+function ensureOriginCrosshair() {
+  if (!window.__calibrationEnabled) return;
+  const panelVisible = $('#calibration-panel').is(':visible');
+  const $cross = $('#origin-crosshair');
+  if (!panelVisible) {
+    if ($cross.length) $cross.hide();
+    return;
+  }
+  if ($cross.length) {
+    $cross.show();
+    return;
+  }
+  const crosshair = $('<div id="origin-crosshair"></div>').css({
+    position: 'absolute',
+    width: '0',
+    height: '0',
+    pointerEvents: 'none',
+    zIndex: 21
+  });
+  const v = $('<div></div>').css({ position: 'absolute', left: '-1px', top: '-20px', width: '2px', height: '40px', background: 'rgba(255,0,0,0.8)' });
+  const h = $('<div></div>').css({ position: 'absolute', left: '-20px', top: '-1px', width: '40px', height: '2px', background: 'rgba(255,0,0,0.8)' });
+  crosshair.append(v, h);
+  $('#map-container').append(crosshair);
+}
+
+// Update crosshair screen position based on current offsets, zoom, and map position
+function updateOriginCrosshair() {
+  if (!window.__calibrationEnabled) return;
+  if (!$('#calibration-panel').is(':visible')) {
+    $('#origin-crosshair').hide();
+    return;
+  }
+  ensureOriginCrosshair();
+  const xUnscaled = offsetX;
+  const yUnscaled = offsetY + MAP_HEIGHT;
+  const x = (xUnscaled + mapPosition.x) * currentZoom;
+  const y = (yUnscaled + mapPosition.y) * currentZoom;
+  $('#origin-crosshair').css({ left: x + 'px', top: y + 'px' });
+}
+
+// Toggleable calibration panel UI
+function ensureCalibrationUI() {
+  if ($('#calibration-panel').length) return;
+  const panel = $(`
+    <div id="calibration-panel" style="position: absolute; top: 50px; right: 10px; background: rgba(0,0,0,0.8); color: #fff; padding: 10px; border-radius: 6px; z-index: 22; display: none; width: 230px;">
+      <div style="font-weight: 600; margin-bottom: 6px;">Calibrate Origin (0,0)</div>
+      <div style="display:flex; align-items:center; margin-bottom:6px; gap:6px;">
+        <span style="width: 16px;">X</span>
+        <button type="button" class="calib-step" data-axis="x" data-delta="-10">-10</button>
+        <button type="button" class="calib-step" data-axis="x" data-delta="-1">-1</button>
+        <input id="offset-x-input" type="number" style="flex:1; padding:2px 4px;" />
+        <button type="button" class="calib-step" data-axis="x" data-delta="1">+1</button>
+        <button type="button" class="calib-step" data-axis="x" data-delta="10">+10</button>
+      </div>
+      <div style="display:flex; align-items:center; margin-bottom:6px; gap:6px;">
+        <span style="width: 16px;">Y</span>
+        <button type="button" class="calib-step" data-axis="y" data-delta="-10">-10</button>
+        <button type="button" class="calib-step" data-axis="y" data-delta="-1">-1</button>
+        <input id="offset-y-input" type="number" style="flex:1; padding:2px 4px;" />
+        <button type="button" class="calib-step" data-axis="y" data-delta="1">+1</button>
+        <button type="button" class="calib-step" data-axis="y" data-delta="10">+10</button>
+      </div>
+      <div style="display:flex; justify-content: space-between; gap:6px;">
+        <button type="button" id="calib-save">Save</button>
+        <button type="button" id="calib-reset">Reset</button>
+        <button type="button" id="calib-close">Close</button>
+      </div>
+    </div>
+  `);
+  $('#map-container').append(panel);
+
+  function syncInputs() {
+    $('#offset-x-input').val(Math.round(offsetX));
+    $('#offset-y-input').val(Math.round(offsetY));
+  }
+
+  // Wire actions
+  $('#calibration-panel').on('click', '.calib-step', function() {
+    const axis = $(this).data('axis');
+    const delta = Number($(this).data('delta')) || 0;
+    if (axis === 'x') offsetX += delta; else offsetY += delta;
+    updateOriginCrosshair();
+    syncInputs();
+  });
+  $('#offset-x-input').on('change', function(){ offsetX = Number($(this).val()) || 0; updateOriginCrosshair(); });
+  $('#offset-y-input').on('change', function(){ offsetY = Number($(this).val()) || 0; updateOriginCrosshair(); });
+  $('#calib-save').on('click', function(){ saveOffsetsForCurrentMap(); showNotification('Offsets saved for ' + getCurrentMapConfig().displayName); });
+  $('#calib-reset').on('click', function(){ const cfg = getCurrentMapConfig(); offsetX = cfg.offsetX || 0; offsetY = cfg.offsetY || 0; updateOriginCrosshair(); syncInputs(); });
+  $('#calib-close').on('click', function(){ $('#calibration-panel').hide(); });
+
+  syncInputs();
+}
 
 // Configuration
 // Determine if we're running locally or in production (Azure)
@@ -403,6 +544,8 @@ function updateContextMenuHtml() {
 function initMap() {
   const mapElement = $('#game-map');
   const mapConfig = getCurrentMapConfig();
+  // Load per-map offsets (defaults + local overrides)
+  loadOffsetsForCurrentMap();
   
   mapElement.css({
     width: mapConfig.width + 'px',
@@ -420,13 +563,19 @@ function initMap() {
   const heatmapOverlay = $('#heatmap-overlay');
   const guideOverlay = $('#guide-overlay');
   
-  // Preload the heatmap and guide images in the background
-  preloadOverlayImages();
+  // Preload overlays only for supported maps
+  if (mapConfig.hasHeatmap || mapConfig.hasGuide) {
+    preloadOverlayImages();
+  } else {
+    heatmapImagePreloaded = false;
+    guideImagePreloaded = false;
+  }
   
+  // Configure overlays
   heatmapOverlay.css({
     width: mapConfig.width + 'px',
     height: mapConfig.height + 'px',
-    backgroundImage: `url(${mapConfig.heatmapImage})`,
+    backgroundImage: mapConfig.hasHeatmap ? `url(${mapConfig.heatmapImage})` : 'none',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.7,
@@ -436,12 +585,16 @@ function initMap() {
   guideOverlay.css({
     width: mapConfig.width + 'px',
     height: mapConfig.height + 'px',
-    backgroundImage: `url(${mapConfig.guideImage})`,
+    backgroundImage: mapConfig.hasGuide ? `url(${mapConfig.guideImage})` : 'none',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     opacity: 0.9,
     transform: `scale(${currentZoom}) translate(${mapPosition.x}px, ${mapPosition.y}px)`
   });
+
+  // Disable and hide buttons for unsupported maps
+  $('#toggle-heatmap').prop('disabled', !mapConfig.hasHeatmap).toggle(mapConfig.hasHeatmap);
+  $('#toggle-guide').prop('disabled', !mapConfig.hasGuide).toggle(mapConfig.hasGuide);
 
   // Check URL parameters for initial state
   checkUrlParameters();
@@ -475,6 +628,18 @@ function initMap() {
   // Heatmap toggle
   $('#toggle-heatmap').on('click', toggleHeatmap);
   
+  // Keep origin crosshair in sync with transforms (only when calibration is enabled)
+  window.__calibrationEnabled = isCalibrationEnabled();
+  if (window.__calibrationEnabled) {
+    updateOriginCrosshair();
+    $('#map-container').off('mousemove.origin').on('mousemove.origin', function(){ updateOriginCrosshair(); });
+    $(window).off('resize.origin').on('resize.origin', function(){ updateOriginCrosshair(); });
+  } else {
+    $('#map-container').off('mousemove.origin');
+    $(window).off('resize.origin');
+    $('#origin-crosshair').hide();
+  }
+
   // Guide toggle
   $('#toggle-guide').on('click', toggleGuide);
   
@@ -552,8 +717,24 @@ function initMap() {
   });
 
   // Initialize map selector
-  // Disable map selector (single map: Maynard) and set label
-  $('#map-select-overlay').prop('disabled', true).val(getCurrentMapConfig().name);
+  initMapSelector();
+  
+  // Conditionally enable calibration in development or with calib=1 flag
+  window.__calibrationEnabled = isCalibrationEnabled();
+  if (window.__calibrationEnabled) {
+    // Inject calibration toggle button if missing
+    if (!$('#toggle-calibration').length) {
+      const btn = $('<button id="toggle-calibration" title="Calibrate origin" style="margin-left:8px;">🎯</button>');
+      $('.map-selector-container').prepend(btn);
+    }
+    ensureCalibrationUI();
+    $('#toggle-calibration').off('click').on('click', function(){
+      ensureCalibrationUI();
+      loadOffsetsForCurrentMap();
+      $('#calibration-panel').toggle();
+      $('#origin-crosshair').toggle($('#calibration-panel').is(':visible'));
+    });
+  }
 }
 
 function loadPoisFromFile() {
@@ -3425,8 +3606,13 @@ $(document).on('keydown', function(e) {
 
 // Toggle heatmap visibility
 function toggleHeatmap() {
-  isHeatmapVisible = !isHeatmapVisible;
   const mapConfig = getCurrentMapConfig();
+  if (!mapConfig.hasHeatmap) {
+    isHeatmapVisible = false;
+    $('#heatmap-overlay').hide();
+    return;
+  }
+  isHeatmapVisible = !isHeatmapVisible;
   
   // If the image is preloaded, toggle immediately
   // Otherwise, show a loading indicator
@@ -3454,8 +3640,13 @@ function toggleHeatmap() {
 
 // Toggle guide visibility
 function toggleGuide() {
-  isGuideVisible = !isGuideVisible;
   const mapConfig = getCurrentMapConfig();
+  if (!mapConfig.hasGuide) {
+    isGuideVisible = false;
+    $('#guide-overlay').hide();
+    return;
+  }
+  isGuideVisible = !isGuideVisible;
   
   // If the image is preloaded, toggle immediately
   // Otherwise, show a loading indicator
@@ -3719,20 +3910,25 @@ function applyMapBoundaryConstraints(containerWidth, containerHeight) {
 // Function to preload overlay images
 function preloadOverlayImages() {
   const mapConfig = getCurrentMapConfig();
+  if (!mapConfig.hasHeatmap && !mapConfig.hasGuide) return;
   
   // Preload heatmap image
-  const heatmapImage = new Image();
-  heatmapImage.onload = function() {
-    heatmapImagePreloaded = true;
-  };
-  heatmapImage.src = mapConfig.heatmapImage;
+  if (mapConfig.hasHeatmap) {
+    const heatmapImage = new Image();
+    heatmapImage.onload = function() {
+      heatmapImagePreloaded = true;
+    };
+    heatmapImage.src = mapConfig.heatmapImage;
+  }
   
   // Preload guide image
-  const guideImage = new Image();
-  guideImage.onload = function() {
-    guideImagePreloaded = true;
-  };
-  guideImage.src = mapConfig.guideImage;
+  if (mapConfig.hasGuide) {
+    const guideImage = new Image();
+    guideImage.onload = function() {
+      guideImagePreloaded = true;
+    };
+    guideImage.src = mapConfig.guideImage;
+  }
 }
 
 
@@ -3796,12 +3992,13 @@ function checkUrlParameters() {
     const canEditParam = urlParams.get('canEdit');
     
     // Check for guide parameter
-    if (guideParam === '1') {
+    const mapConfig = getCurrentMapConfig();
+    if (guideParam === '1' && mapConfig.hasGuide) {
         // Show guide overlay
         isGuideVisible = true;
         $('#guide-overlay').show();
         $('#toggle-guide').addClass('active');
-    } else if (guideParam === '0') {
+    } else if (guideParam === '0' && mapConfig.hasHeatmap) {
         // Show heatmap instead
         isHeatmapVisible = true;
         $('#heatmap-overlay').show();
@@ -4208,8 +4405,37 @@ function updateAdminUIState() {
 
 // Initialize the map selector
 function initMapSelector() {
-  // Single-map mode: keep selector disabled and set value; no change handlers
-  $('#map-select-overlay').prop('disabled', true).val(getCurrentMapConfig().name);
+  const $selector = $('#map-select-overlay');
+  if ($selector.length === 0) return;
+
+  // Allow only Maynard and Agnesville; hide Sinkhole
+  const allowed = [MAP_IDS.MAYNARD, MAP_IDS.AGNESVILLE];
+  $selector.empty();
+  allowed.forEach((mapId) => {
+    const cfg = MAP_CONFIG[mapId];
+    if (!cfg) return;
+    const option = $('<option></option>')
+      .attr('value', cfg.name)
+      .text(cfg.displayName);
+    $selector.append(option);
+  });
+
+  // Set current selection and tooltip
+  const currentCfg = getCurrentMapConfig();
+  $selector.val(currentCfg.name);
+  $('.map-tooltip').text(currentCfg.displayName);
+
+  // Enable and wire change handler
+  $selector.prop('disabled', false);
+  $selector.off('change').on('change', function () {
+    const selectedName = $(this).val();
+    const targetId = Object.values(MAP_IDS).find((id) => MAP_CONFIG[id].name === selectedName);
+    if (targetId && targetId !== currentMapId) {
+      changeMap(targetId);
+    }
+    const cfg = getCurrentMapConfig();
+    $('.map-tooltip').text(cfg.displayName);
+  });
 }
 
 // Change the current map
@@ -4247,6 +4473,10 @@ function changeMap(newMapId) {
   
   // Load POIs for the new map
   loadPoisFromFile();
+  
+  // Refresh offsets and crosshair for the new map
+  loadOffsetsForCurrentMap();
+  updateOriginCrosshair();
   
   // Show notification
   showNotification(`Switched to ${mapConfig.displayName} map`);
