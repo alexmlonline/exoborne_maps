@@ -5,3 +5,7 @@ WIKI
     NPC descriptions and fighting tactics
     economy of metal scraps vs using the same slot for the loot (at which cost it's better to get loot of $xxx vs scraps for crafting)
     exo rigs mods meta
+
+
+BUGS
+ I can delete non-approved POIs from other (people's)  sessions. Approved ones required admin privileges 
