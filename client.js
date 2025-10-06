@@ -49,13 +49,15 @@ const MAP_CONFIG = {
     displayName: 'Sinkhole',
     width: 2000,
     height: 1430,
-    backgroundImage: 'maps/sinkhole_map.jpg',
+    backgroundImage: 'maps/sinkhole.png',
     heatmapImage: 'maps/Sinkhole_Heatmap_Transparent.png',
     guideImage: 'maps/Sinkhole_Guide_Transparent.png',
-    offsetX: 0,
-    offsetY: 0,
-    scaleX: 1.664,
-    scaleY: 1.664
+    hasHeatmap: false,
+    hasGuide: true,
+    offsetX: 1000,
+    offsetY: -715,
+    scaleX: 0.861,
+    scaleY: 0.85
   }
 };
 
@@ -4433,8 +4435,8 @@ function initMapSelector() {
   const $selector = $('#map-select-overlay');
   if ($selector.length === 0) return;
 
-  // Allow only Maynard and Agnesville; hide Sinkhole
-  const allowed = [MAP_IDS.MAYNARD, MAP_IDS.AGNESVILLE];
+  // Allow Maynard, Agnesville, and Sinkhole
+  const allowed = [MAP_IDS.MAYNARD, MAP_IDS.AGNESVILLE, MAP_IDS.SINKHOLE];
   $selector.empty();
   allowed.forEach((mapId) => {
     const cfg = MAP_CONFIG[mapId];
