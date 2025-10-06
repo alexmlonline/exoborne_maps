@@ -93,6 +93,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'default.html'));
 });
 
+// Wiki route (case-insensitive support for /wiki and /WIKI)
+app.get(['/wiki', '/WIKI'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'wiki.html'));
+});
+
 
 // Initialize secrets from environment variables before starting the server
 async function initializeApp() {

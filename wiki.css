@@ -1,0 +1,128 @@
+/* Wiki page styling - dark theme aligned with app */
+
+body {
+  background-color: #1a1a1a;
+  color: #e5e5e5;
+  font-family: Arial, sans-serif;
+}
+
+#wiki-container {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100vh;
+}
+
+#wiki-sidebar {
+  background-color: #272727;
+  border-right: 1px solid #444;
+  padding: 16px;
+}
+
+#wiki-sidebar .brand {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+#wiki-sidebar ul {
+  list-style: none;
+}
+
+#wiki-sidebar li { margin-bottom: 8px; }
+
+#wiki-sidebar a {
+  color: #fff;
+  text-decoration: none;
+  padding: 6px 8px;
+  display: block;
+  border-radius: 4px;
+}
+
+#wiki-sidebar a:hover {
+  background-color: #333;
+}
+
+#wiki-content {
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.wiki-header h1 {
+  margin-bottom: 4px;
+}
+
+.wiki-header .subtitle {
+  color: #bdbdbd;
+  margin-bottom: 20px;
+}
+
+.wiki-section { margin-bottom: 28px; }
+
+.wiki-section h2 {
+  color: #ffd700;
+  border-bottom: 1px solid #444;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background-color: #272727;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.list .list-item {
+  background-color: #272727;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.rig {
+  background-color: #272727;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.wiki-footer {
+  margin-top: 24px;
+}
+
+.back-link {
+  color: #ffd700;
+  text-decoration: none;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  #wiki-container {
+    grid-template-columns: 1fr;
+  }
+  #wiki-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
+
+
+

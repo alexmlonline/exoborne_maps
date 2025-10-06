@@ -5,7 +5,18 @@ WIKI
     NPC descriptions and fighting tactics
     economy of metal scraps vs using the same slot for the loot (at which cost it's better to get loot of $xxx vs scraps for crafting)
     exo rigs mods meta
+    scarab )big spider)
+    Kodiak for storm
 
 
 BUGS
  I can delete non-approved POIs from other (people's)  sessions. Approved ones required admin privileges 
+
+
+ QUEST ITEMS:
+ 25 Alcohol
+ 3 Tobacco
+ 30 Food (Vending machine counts)
+ 1 Intact Shepperd Mask (Purples)
+ 30 Bodkin Masks
+ 25 Oil Rigs Badge
