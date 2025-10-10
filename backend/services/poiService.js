@@ -8,15 +8,27 @@ function formatDateForMySQL(dateString) {
 }
 
 class PoiService {
-    // Get all approved POIs
-    async getApprovedPois() {
-        const [rows] = await db.query('SELECT * FROM pois WHERE approved = TRUE AND isDeleted = FALSE');
+    // Get all approved POIs (optionally filtered by mapId)
+    async getApprovedPois(mapId) {
+        let sql = 'SELECT * FROM pois WHERE approved = TRUE AND isDeleted = FALSE';
+        const params = [];
+        if (mapId !== undefined && mapId !== null) {
+            sql += ' AND mapId = ?';
+            params.push(Number(mapId));
+        }
+        const [rows] = await db.query(sql, params);
         return rows;
     }
 
-    // Get all draft POIs
-    async getDraftPois() {
-        const [rows] = await db.query('SELECT * FROM pois WHERE approved = FALSE AND isDeleted = FALSE');
+    // Get all draft POIs (optionally filtered by mapId)
+    async getDraftPois(mapId) {
+        let sql = 'SELECT * FROM pois WHERE approved = FALSE AND isDeleted = FALSE';
+        const params = [];
+        if (mapId !== undefined && mapId !== null) {
+            sql += ' AND mapId = ?';
+            params.push(Number(mapId));
+        }
+        const [rows] = await db.query(sql, params);
         return rows;
     }
 

@@ -138,7 +138,8 @@ async function initializeApp() {
 // Get approved POIs
 app.get('/api/pois-approved', async (req, res) => {
     try {
-        const pois = await poiService.getApprovedPois();
+        const mapId = req.query.mapId ? Number(req.query.mapId) : undefined;
+        const pois = await poiService.getApprovedPois(mapId);
         res.json(pois);
     } catch (err) {
         console.error('Error getting approved POIs:', err);
@@ -149,7 +150,8 @@ app.get('/api/pois-approved', async (req, res) => {
 // Get draft POIs
 app.get('/api/pois-draft', async (req, res) => {
     try {
-        const pois = await poiService.getDraftPois();
+        const mapId = req.query.mapId ? Number(req.query.mapId) : undefined;
+        const pois = await poiService.getDraftPois(mapId);
         res.json(pois);
     } catch (err) {
         console.error('Error getting draft POIs:', err);
@@ -325,9 +327,10 @@ app.post('/api/approve-poi', async (req, res) => {
         // If token is valid, proceed with approval
         await poiService.approvePoi(poi.id, true);
         
-        // Get updated POIs
-        const draftPois = await poiService.getDraftPois();
-        const approvedPois = await poiService.getApprovedPois();
+        // Get updated POIs, optionally filtered by mapId
+        const mapId = req.query.mapId ? Number(req.query.mapId) : undefined;
+        const draftPois = await poiService.getDraftPois(mapId);
+        const approvedPois = await poiService.getApprovedPois(mapId);
         
         res.json({ 
             success: true, 

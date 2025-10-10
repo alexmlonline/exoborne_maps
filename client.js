@@ -766,7 +766,7 @@ function loadPoisFromFile() {
   Promise.all([
     // Load approved POIs
     $.ajax({
-      url: `${API_ENDPOINT}/pois-approved`,
+      url: `${API_ENDPOINT}/pois-approved?mapId=${encodeURIComponent(mapId)}`,
       method: 'GET',
       dataType: 'json'
     }).catch(error => {
@@ -777,7 +777,7 @@ function loadPoisFromFile() {
     
     // Load draft POIs
     $.ajax({
-      url: `${API_ENDPOINT}/pois-draft`,
+      url: `${API_ENDPOINT}/pois-draft?mapId=${encodeURIComponent(mapId)}`,
       method: 'GET',
       dataType: 'json'
     }).catch(error => {
@@ -796,7 +796,8 @@ function loadPoisFromFile() {
         ...cleanPoi,
         type: normalizedType,
         approved: true, // Ensure approved status for main POIs
-        mapId: poi.mapId || mapId // Use existing mapId or set current mapId
+        // Normalize mapId to a number and default legacy items to Maynard
+        mapId: (poi.mapId != null && !Number.isNaN(Number(poi.mapId))) ? Number(poi.mapId) : MAP_IDS.MAYNARD
       };
     });
 
@@ -808,7 +809,8 @@ function loadPoisFromFile() {
         ...cleanPoi,
         type: normalizedType,
         approved: false, // Ensure unapproved status for draft POIs
-        mapId: poi.mapId || mapId // Use existing mapId or set current mapId
+        // Normalize mapId to a number and default legacy items to Maynard
+        mapId: (poi.mapId != null && !Number.isNaN(Number(poi.mapId))) ? Number(poi.mapId) : MAP_IDS.MAYNARD
       };
     });
 
@@ -1445,7 +1447,8 @@ function approvePoi(poiId) {
     showNotification('Approving POI...');
 
     // Send approval request to server with token in the header
-    fetch(`${API_ENDPOINT}/approve-poi`, {
+    const mapId = currentMapId;
+    fetch(`${API_ENDPOINT}/approve-poi?mapId=${encodeURIComponent(mapId)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1467,10 +1470,15 @@ function approvePoi(poiId) {
           pois[index] = { ...pois[index], approved: true };
         }
         
-        // Then update with server data if available
-        if (data.approvedPois && data.approvedPois.length > 0) {
-          pois = pois.filter(p => p.id !== poiId);
-          pois = [...pois, ...data.approvedPois];
+        // Replace local arrays with server-provided filtered lists when available
+        if (Array.isArray(data.approvedPois) || Array.isArray(data.draftPois)) {
+          const mapIdNum = Number(mapId);
+          const approved = Array.isArray(data.approvedPois) ? data.approvedPois : [];
+          const drafts = Array.isArray(data.draftPois) ? data.draftPois : [];
+          const normalizedApproved = approved.map(p => ({ ...p, mapId: Number(p.mapId) }));
+          const normalizedDrafts = drafts.map(p => ({ ...p, mapId: Number(p.mapId) }));
+          const merged = [...normalizedApproved, ...normalizedDrafts].filter(p => p.mapId === mapIdNum);
+          pois = merged;
         }
         
         // If we were showing only unapproved POIs, maintain that filter
@@ -1480,7 +1488,8 @@ function approvePoi(poiId) {
           });
         }
         
-        // Update UI
+        // Ensure we only render POIs for current map
+        pois = pois.filter(p => Number(p.mapId) === Number(currentMapId));
         renderPois();
         savePoisToStorage();
         
@@ -2175,7 +2184,10 @@ function loadPoisFromStorage() {
   const storedPois = localStorage.getItem(getStorageKey());
   if (storedPois) {
     try {
-      pois = JSON.parse(storedPois);
+      pois = JSON.parse(storedPois).map(p => {
+        const normalizedMapId = (p.mapId != null && !Number.isNaN(Number(p.mapId))) ? Number(p.mapId) : MAP_IDS.MAYNARD;
+        return { ...p, mapId: normalizedMapId };
+      });
       
       // Ensure all POIs have a sessionId (for backward compatibility)
       pois.forEach(poi => {
@@ -2204,9 +2216,11 @@ function loadPoisFromStorage() {
 function savePoisToStorage() {
   // Ensure all POIs have the current map ID before saving
   pois.forEach(poi => {
-    if (!poi.mapId) {
+    if (poi.mapId == null) {
       poi.mapId = currentMapId;
     }
+    // Normalize to numeric mapId to avoid cross-map leakage from legacy data
+    poi.mapId = Number(poi.mapId);
   });
   
   localStorage.setItem(getStorageKey(), JSON.stringify(pois));
