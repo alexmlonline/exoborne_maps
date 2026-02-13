@@ -48,8 +48,9 @@ jobs:
       - name: 'Deploy to Azure Web App via FTPS'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTPS_SERVER }}
+          server: ${{ secrets.FTPS_HOSTNAME }}
           username: ${{ secrets.FTPS_USERNAME }}
           password: ${{ secrets.FTPS_PASSWORD }}
           protocol: ftps
           local-dir: ./
+          server-dir: /site/wwwroot/
