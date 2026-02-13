@@ -45,6 +45,9 @@ jobs:
         with:
           name: node-app
 
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
       - name: 'Deploy to Azure Web App via FTPS'
         env:
           FTPS_HOSTNAME: ${{ secrets.FTPS_HOSTNAME }}
