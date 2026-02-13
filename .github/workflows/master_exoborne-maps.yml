@@ -46,11 +46,22 @@ jobs:
           name: node-app
 
       - name: 'Deploy to Azure Web App via FTPS'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTPS_HOSTNAME }}
-          username: ${{ secrets.FTPS_USERNAME }}
-          password: ${{ secrets.FTPS_PASSWORD }}
-          protocol: ftps
-          local-dir: ./
-          server-dir: /site/wwwroot/
+        env:
+          FTPS_HOSTNAME: ${{ secrets.FTPS_HOSTNAME }}
+          FTPS_USERNAME: ${{ secrets.FTPS_USERNAME }}
+          FTPS_PASSWORD: ${{ secrets.FTPS_PASSWORD }}
+        run: |
+          lftp -e "
+            set ftp:ssl-force true;
+            set ssl:verify-certificate false;
+            set net:timeout 122400;
+            set net:max-retries 5;
+            set net:reconnect-interval-base 10;
+            set net:reconnect-interval-multiplier 2;
+            set ftp:ssl-protect-data true;
+            set mirror:parallel-transfer-count 5;
+            open ftps://$FTPS_HOSTNAME;
+            user $FTPS_USERNAME $FTPS_PASSWORD;
+            mirror --reverse --delete --verbose --parallel=5 ./ /site/wwwroot/;
+            bye;
+          "
